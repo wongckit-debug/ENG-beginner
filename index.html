@@ -1,0 +1,1567 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>LingoVibe HK ⚡ — Blind Listening & Vibe Cards Edition</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    body { font-family: 'Inter', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f4f6fb; -webkit-tap-highlight-color: transparent; }
+    .syl-pill { display: inline-block; padding: 2px 8px; margin: 2px; border-radius: 8px; font-weight: 800; font-size: 0.82rem; transition: transform .15s; }
+    .syl-pill:active { transform: scale(0.92); }
+    .syl-0 { background: #dbeafe; color: #1e40af; }
+    .syl-1 { background: #fce7f3; color: #9d174d; }
+    .syl-2 { background: #dcfce7; color: #166534; }
+    .syl-3 { background: #fef3c7; color: #92400e; }
+    .syl-4 { background: #ede9fe; color: #5b21b6; }
+    .role-S { background: #dbeafe; color: #1e3a8a; border: 1px solid #93c5fd; }
+    .role-V { background: #ffe4e6; color: #9f1239; border: 1px solid #fda4af; }
+    .role-O { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+    .role-M { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+    .pop-card { transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .pop-card:hover { transform: translateY(-2px); }
+    .btn-bounce:active { transform: scale(0.94); }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+    .shake { animation: shake 0.3s ease-in-out; }
+    @keyframes pulseRing { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 14px rgba(139, 92, 246, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); } }
+    .audio-pulse { animation: pulseRing 2s infinite; }
+    .holo-card { background: linear-gradient(135deg, #1e1b4b 0%, #311042 50%, #0f172a 100%); position: relative; overflow: hidden; }
+    .holo-card::after { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 20%, rgba(255,255,255,0.14) 45%, rgba(255,255,255,0.0) 60%); pointer-events: none; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col lg:flex-row pb-16 lg:pb-0">
+
+  <!-- MOBILE DRAWER BACKDROP -->
+  <div id="drawerBackdrop" onclick="toggleDrawer(false)" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-40 hidden lg:hidden"></div>
+
+  <!-- LEFT NAVIGATION SIDEBAR -->
+  <aside id="leftNav" class="fixed lg:sticky top-0 left-0 h-full lg:h-screen w-80 max-w-[86vw] bg-slate-950 text-white flex flex-col border-r border-slate-800 z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 shrink-0">
+    <!-- Brand & Live Rank Card -->
+    <div class="p-4 border-b border-slate-800 bg-gradient-to-br from-violet-950 via-slate-950 to-fuchsia-950">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="bg-gradient-to-r from-violet-500 to-fuchsia-500 text-[10px] font-black uppercase px-2 py-0.5 rounded-full">EDB 2,000 Words</span>
+            <span class="text-[11px] text-emerald-400 font-bold">⚡ Auto-Save</span>
+          </div>
+          <h1 class="text-xl font-black tracking-tight mt-1 bg-gradient-to-r from-violet-300 via-fuchsia-300 to-amber-300 bg-clip-text text-transparent">
+            LingoVibe HK ⚡
+          </h1>
+        </div>
+        <button onclick="toggleDrawer(false)" class="lg:hidden w-8 h-8 rounded-xl bg-slate-800 text-slate-300 font-bold">✕</button>
+      </div>
+      <!-- Mini Rank Badge Pill -->
+      <div onclick="switchTrack('vibe')" class="mt-3 p-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between cursor-pointer hover:bg-white/10 transition">
+        <div class="flex items-center gap-2">
+          <span id="sideRankIcon" class="text-xl">🌱</span>
+          <div>
+            <div class="text-[10px] text-slate-400 font-bold uppercase">Current Rank</div>
+            <div id="sideRankTitle" class="text-xs font-black text-amber-300">Syllable Rookie</div>
+          </div>
+        </div>
+        <span class="text-[10px] bg-violet-500/30 text-violet-200 px-2 py-0.5 rounded-full font-bold">查看徽章 →</span>
+      </div>
+    </div>
+
+    <!-- Key Stage Switcher -->
+    <div class="p-3 border-b border-slate-800">
+      <div class="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1.5 px-1">🎮 Select Key Stage</div>
+      <div class="grid grid-cols-2 gap-1.5" id="ksBar"></div>
+    </div>
+
+    <!-- Mode Switcher (Now with #5 Blind Listening & #6 Vibe Cards) -->
+    <div class="p-3 border-b border-slate-800">
+      <div class="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1.5 px-1">🧭 Quest Track</div>
+      <div class="flex flex-col gap-1" id="moduleSwitcher"></div>
+    </div>
+
+    <!-- Scrollable Unit / Theme List -->
+    <div class="p-3 flex-1 overflow-y-auto space-y-1.5">
+      <div class="flex items-center justify-between px-1">
+        <span class="font-extrabold text-xs text-slate-200" id="sidebarTitle"></span>
+        <span class="text-[10px] font-bold bg-violet-500/20 text-violet-300 px-2 py-0.5 rounded-full" id="stageCountLabel"></span>
+      </div>
+      <p class="text-[11px] text-slate-400 px-1" id="sidebarHint"></p>
+      <div id="sidebarList" class="space-y-1.5 pt-1"></div>
+    </div>
+
+    <!-- Footer Actions -->
+    <div class="p-3 border-t border-slate-800 bg-slate-900 flex gap-2">
+      <button onclick="unlockAll()" class="flex-1 text-xs bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 font-black py-2 rounded-xl btn-bounce shadow">
+        🔓 一键全解锁 (God Mode)
+      </button>
+      <button onclick="resetProgress()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-rose-900 text-xs" title="重置进度">🔄</button>
+    </div>
+  </aside>
+
+  <!-- MAIN WORKSPACE -->
+  <div class="flex-1 flex flex-col min-w-0">
+    <!-- Sticky Top Energy Bar -->
+    <header class="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30 px-3 lg:px-8 py-2.5 shadow-xs">
+      <div class="max-w-5xl mx-auto space-y-2">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2 min-w-0">
+            <button onclick="toggleDrawer(true)" class="lg:hidden px-2.5 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-black shrink-0 btn-bounce">
+              ☰ 目录
+            </button>
+            <p class="text-xs font-extrabold text-slate-700 truncate" id="scaffoldingBanner"></p>
+          </div>
+          <!-- Gamified XP & Streak Pills -->
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button onclick="switchTrack('vibe')" class="px-2.5 py-1 rounded-full bg-orange-100 text-orange-700 font-black text-xs flex items-center gap-1 btn-bounce">
+              🔥 <b id="streakNum">0</b>
+            </button>
+            <button onclick="switchTrack('vibe')" class="px-2.5 py-1 rounded-full bg-violet-100 text-violet-700 font-black text-xs flex items-center gap-1 btn-bounce">
+              ⚡ <b id="xpNum">0</b> XP
+            </button>
+          </div>
+        </div>
+
+        <!-- Horizontal Step Pills + Search -->
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100">
+          <div class="flex gap-1.5 overflow-x-auto no-scrollbar py-0.5 max-w-full" id="stepNav"></div>
+          <div id="searchWrapper" class="w-full sm:w-auto">
+            <input id="searchBox" oninput="renderMain()" type="text" placeholder="🔍 搜单词或中文..."
+              class="w-full sm:w-48 text-base sm:text-xs border border-slate-300 rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-violet-500" />
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Dynamic Stage Content -->
+    <main class="flex-1 px-3 lg:px-8 py-4 lg:py-6">
+      <div class="max-w-5xl mx-auto">
+        <div id="mainBox" class="bg-white rounded-3xl shadow-sm border border-slate-200/90 p-4 lg:p-6 min-h-[520px]"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- MOBILE BOTTOM NAVIGATION BAR (5 THUMB TARGETS) -->
+  <nav class="lg:hidden fixed bottom-0 inset-x-0 bg-slate-950 text-white border-t border-slate-800 z-30 grid grid-cols-5 py-1.5 px-1 text-[10px] font-extrabold">
+    <button onclick="switchTrack('vocab')" id="mNavVocab" class="flex flex-col items-center py-1 rounded-xl text-amber-400">
+      <span class="text-sm">📖</span><span>刷词汇</span>
+    </button>
+    <button onclick="switchTrack('grammar')" id="mNavGrammar" class="flex flex-col items-center py-1 rounded-xl text-slate-400">
+      <span class="text-sm">🧩</span><span>练造句</span>
+    </button>
+    <button onclick="switchTrack('listen')" id="mNavListen" class="flex flex-col items-center py-1 rounded-xl text-slate-400">
+      <span class="text-sm">🎧</span><span>盲听室</span>
+    </button>
+    <button onclick="switchTrack('vibe')" id="mNavVibe" class="flex flex-col items-center py-1 rounded-xl text-slate-400">
+      <span class="text-sm">🏆</span><span>成就卡</span>
+    </button>
+    <button onclick="toggleDrawer(true)" class="flex flex-col items-center py-1 rounded-xl text-violet-300">
+      <span class="text-sm">☰</span><span>选关/考卷</span>
+    </button>
+  </nav>
+
+<script>
+/* ============================================================================
+   1. 2,000-WORD HK EDB VOCABULARY DATABASE (KS1-KS4, 40 THEMES × 50 WORDS)
+   ============================================================================ */
+const COMPACT_LEXICON = {
+  KS1: {
+    name: "KS1 (小一至小三 P1–P3)", zhRatio: 95,
+    banner: "KS1 新手村 (P1–P3) • 95% 中文指导 • 500词 + 5语法 + 盲听特训",
+    themes: [
+      { id: "ks1_t1", title: "01. 代词与疑问词 (Pronouns)", pos: "pron./det.", raw: "I:我(主格)|you:你/你们|he:他|she:她|it:它|we:我们|they:他们|me:我(宾格)|him:他(宾格)|her:她(宾格)/她的|us:我们(宾格)|them:他们(宾格)|my:我的|your:你的|his:他的|its:它的|our:我们的|their:他们的|mine:我的(东西)|yours:你的(东西)|hers:她的(东西)|ours:我们的(东西)|theirs:他们的(东西)|this:这个|that:那个|these:这些|those:那些|what:什么|who:谁|whom:谁(宾格)|whose:谁的|which:哪一个|where:哪里|when:什么时候|why:为什么|how:怎样/如何|a:一个(辅音前)|an:一个(元音前)|the:这/那(特指)|some:一些(肯定)|an·y:任何/一些|man·y:许多(可数)|much:许多(不可数)|all:全部/所有|both:两者都|each:每一个|ev·er·y:每一个|oth·er:其他的|an·oth·er:另一个|such:这样的" },
+      { id: "ks1_t2", title: "02. 家庭与人物 (Family & People)", pos: "n.", raw: "fam·i·ly:家庭|par·ent:父母|fa·ther:父亲|moth·er:母亲|dad:爸爸|mum:妈妈|broth·er:兄弟|sis·ter:姐妹|son:儿子|daugh·ter:女儿|grand·pa:爷爷/外公|grand·ma:奶奶/外婆|grand·fa·ther:祖父/外祖父|grand·moth·er:祖母/外祖母|un·cle:叔叔/舅舅|aunt:阿姨/姑姑|cous·in:堂表亲|ba·by:婴儿|child:孩子|chil·dren:孩子们|boy:男孩|girl:女孩|man:男人|men:男人们|wom·an:女人|wom·en:女人们|per·son:人(单数)|peo·ple:人们|friend:朋友|class·mate:同班同学|school·mate:校友|neigh·bour:邻居|guest:客人|vis·i·tor:访客|mem·ber:成员|adult:成年人|teen·a·ger:青少年|king:国王|queen:王后/女王|prince:王子|prin·cess:公主|he·ro:英雄|clown:小丑|gi·ant:巨人|fa·ir·y:仙女|pir·ate:海盗|witch:女巫|mon·ster:怪兽|ro·bot:机器人|twin:双胞胎" },
+      { id: "ks1_t3", title: "03. 职业与社区 (Jobs & Roles)", pos: "n.", raw: "teach·er:教师/老师|doc·tor:医生|nurse:护士|den·tist:牙医|vet:兽医|po·lice·man:男警察|po·lice·wom·an:女警察|fire·man:消防员|post·man:邮递员|dri·ver:司机|pi·lot:飞行员|cap·tain:船长/机长|sail·or:水手|sol·dier:士兵|guard:保安员|wai·ter:男服务员|wai·tress:女服务员|cook:厨师|chef:主厨|ba·ker:面包师|butch·er:肉贩|far·mer:农夫|gar·den·er:园丁|fish·er·man:渔夫|clean·er:清洁工|work·er:工人|build·er:建筑工人|pain·ter:画家/油漆工|sing·er:歌手|dan·cer:舞者|ac·tor:男演员|ac·tress:女演员|play·er:运动员/选手|run·ner:跑步者|swim·mer:游泳者|wri·ter:作家|au·thor:作者|art·ist:艺术家|mu·si·cian:音乐人|ma·gi·cian:魔术师|shop·keep·er:店主|cash·ier:收银员|clerk:职员|sec·re·tar·y:秘书|man·a·ger:经理|boss:老板|prin·ci·pal:校长|head·mas·ter:男校长|li·brar·i·an:图书管理员|sci·en·tist:科学家" },
+      { id: "ks1_t4", title: "04. 学校与文具 (School & Stationery)", pos: "n.", raw: "school:学校|class:班级/课|class·room:教室|li·brar·y:图书馆|play·ground:操场|hall:礼堂|of·fice:办公室|cor·ri·dor:走廊|stairs:楼梯|lift:电梯|toi·let:洗手间|can·teen:食堂|gar·den:花园|gate:大门|wall:墙壁|floor:地板/楼层|ceil·ing:天花板|door:门|win·dow:窗户|black·board:黑板|white·board:白板|chalk:粉笔|board:板|desk:书桌|chair:椅子|bench:长椅|shelf:书架|cup·board:储物柜|bin:垃圾桶|电·脑→com·pu·ter:电脑|screen:屏幕|mouse:鼠标|key·board:键盘|school·bag:书包|book:书本|text·book:课本|sto·ry·book:故事书|note·book:笔记本|pa·per:纸张|page:页|pen:钢笔/原子笔|pen·cil:铅笔|ru·ler:尺子|e·ra·ser:橡皮擦|rub·ber:橡皮|cray·on:蜡笔|scis·sors:剪刀|glue:胶水|tape:胶带|home·work:家课/作业" },
+      { id: "ks1_t5", title: "05. 身体部位与健康 (Body & Health)", pos: "n.", raw: "bod·y:身体|head:头|hair:头发|face:脸|fore·head:额头|cheek:脸颊|chin:下巴|eye:眼睛|eye·brow:眉毛|eye·lash:睫毛|ear:耳朵|nose:鼻子|mouth:嘴巴|lip:嘴唇|tooth:牙齿(单数)|teeth:牙齿(复数)|tongue:舌头|neck:脖子|throat:喉咙|shoul·der:肩膀|chest:胸口|back:背部|stom·ach:胃/肚子|tummy:肚子(口语)|waist:腰|arm:手臂|el·bow:手肘|wrist:手腕|hand:手|palm:手掌|fin·ger:手指|thumb:大拇指|nail:指甲|leg:腿|knee:膝盖|an·kle:脚踝|foot:脚(单数)|feet:脚(复数)|toe:脚趾|heel:脚跟|skin:皮肤|bone:骨头|blood:血液|heart:心脏|brain:大脑|voice:嗓音|tear:眼泪|sweat:汗水|cold:感冒|fe·ver:发烧" },
+      { id: "ks1_t6", title: "06. 食物与蔬果 (Food & Drinks)", pos: "n.", raw: "food:食物|meal:一餐|break·fast:早餐|lunch:午餐|din·ner:晚餐|sup·per:宵夜/晚餐|snack:小食/零食|pic·nic:野餐|rice:米饭|noo·dle:面条|bread:面包|toast:烤面包|sand·wich:三明治|ham·bur·ger:汉堡包|piz·za:披萨|cake:蛋糕|bis·cuit:饼干|cook·ie:曲奇饼|sweet:糖果|can·dy:糖果|choc·o·late:巧克力|ice cream:雪糕/冰淇淋|jel·ly:果冻|meat:肉类|beef:牛肉|pork:猪肉|chick·en:鸡肉|duck:鸭肉|fish:鱼肉|saus·age:香肠|ham:火腿|egg:鸡蛋|soup:汤|sal·ad:沙拉|salt:盐|sug·ar:糖|but·ter:牛油/黄油|cheese:芝士/奶酪|ap·ple:苹果|ba·na·na:香蕉|or·ange:橙子|pear:梨|peach:桃子|grape:葡萄|straw·ber·ry:草莓|wa·ter·mel·on:西瓜|man·go:芒果|le·mon:柠檬|to·ma·to:番茄|po·ta·to:马铃薯" },
+      { id: "ks1_t7", title: "07. 动物与自然 (Animals & Nature)", pos: "n.", raw: "an·i·mal:动物|pet:宠物|dog:狗|pup·py:小狗|cat:猫|kit·ten:小猫|rab·bit:兔子|ham·ster:仓鼠|mouse:老鼠|mice:老鼠(复数)|tur·tle:乌龟|gold·fish:金鱼|bird:鸟|par·rot:鹦鹉|duck:鸭子|hen:母鸡|chick:小鸡|goose:鹅|pig:猪|cow:奶牛|sheep:绵羊|goat:山羊|horse:马|don·key:驴|li·on:狮子|ti·ger:老虎|el·e·phant:大象|mon·key:猴子|pan·da:熊猫|bear:熊|gi·raffe:长颈鹿|ze·bra:斑马|hip·po:河马|croc·o·dile:鳄鱼|snake:蛇|frog:青蛙|kan·ga·roo:袋鼠|ko·a·la:树熊/考拉|fox:狐狸|wolf:狼|deer:鹿|whale:鲸鱼|shark:鲨鱼|dol·phin:海豚|bee:蜜蜂|but·ter·fly:蝴蝶|ant:蚂蚁|spid·er:蜘蛛|fly:苍蝇|tree:树" },
+      { id: "ks1_t8", title: "08. 衣物与家居 (Clothing & Home)", pos: "n.", raw: "clothes:衣服|shirt:衬衫|T-shirt:T恤|blouse:女式衬衫|dress:连衣裙|skirt:半身裙|trou·sers:长裤|pants:裤子|jeans:牛仔裤|shorts:短裤|coat:外套/大衣|jack·et:夹克|sweat·er:毛衣|vest:背心|u·ni·form:制服/校服|py·ja·mas:睡衣|rain·coat:雨衣|scarf:围巾|tie:领带|belt:皮带|hat:帽子(有边)|cap:鸭舌帽|glove:手套|mit·ten:连指手套|sock:袜子|shoe:鞋子|boot:靴子|slip·per:拖鞋|san·dal:凉鞋|glass·es:眼镜|watch:手表|ring:戒指|bag:袋子|um·brel·la:雨伞|house:房子|home:家|flat:公寓/单位|room:房间|bed·room:卧室|liv·ing room:客厅|kitch·en:厨房|bath·room:浴室|bed:床|pil·low:枕头|blan·ket:毛毯|ta·ble:桌子|so·fa:沙发|lamp:灯|mir·ror:镜子|clock:时钟" },
+      { id: "ks1_t9", title: "09. 核心日常动词 (Core Verbs)", pos: "v.", raw: "be:是/存在|am:是(I)|is:是(单数)|are:是(复数)|have:有|has:有(单数)|do:做|go:去|come:来|eat:吃|drink:喝|sleep:睡觉|wake:醒来|wash:洗|brush:刷|comb:梳|wear:穿/戴|put:放置|take:拿/乘坐|bring:带来|car·ry:携带/搬|hold:握住|open:打开|close:关上|shut:关闭|walk:走路|run:跑|jump:跳|hop:单脚跳|skip:蹦跳|swim:游泳|fly:飞|climb:攀爬|ride:骑|drive:驾驶|sit:坐|stand:站立|lie:躺|fall:跌倒|look:看|see:看见|watch:观看|read:阅读|write:写|draw:画画|paint:涂色/画|lis·ten:听|hear:听见|speak:讲/说|talk:交谈" },
+      { id: "ks1_t10", title: "10. 形容词与时间 (Adjectives & Time)", pos: "adj./n.", raw: "good:好的|bad:坏的|new:新的|old:旧的/老的|young:年轻的|big:大的|small:小的|large:巨大的|lit·tle:小的/少许|tall:高的|short:矮的/短的|long:长的|high:高的|low:低的|fat:胖的|thin:瘦的/薄的|thick:厚的|heavy:重的|light:轻的/明亮的|fast:快的|slow:慢的|hot:热的|cold:冷的|warm:温暖的|cool:凉爽的|wet:湿的|dry:干的|clean:干净的|dir·ty:脏的|tidy:整洁的|hap·py:开心的|sad:伤心的|an·gry:生气的|tired:疲倦的|hun·gry:饥饿的|thirs·ty:口渴的|full:饱的/满的|sick:生病的|ill:生病的|fine:健康的/好的|kind:善良的|po·lite:有礼貌的|clev·er:聪明的|beau·ti·ful:美丽的|cute:可爱的|red:红色|blue:蓝色|yel·low:黄色|green:绿色|mor·ning:早上" }
+    ]
+  },
+  KS2: {
+    name: "KS2 (小四至小六 P4–P6)", zhRatio: 70,
+    banner: "KS2 进阶场 (P4–P6) • 70% 双语指导 • 500词 + 5语法 + 盲听特训",
+    themes: [
+      { id: "ks2_t1", title: "11. 代词、连词与介词 (Preps & Conj)", pos: "pron./prep.", raw: "my·self:我自己|your·self:你自己|him·self:他自己|her·self:她自己|it·self:它自己|our·selves:我们自己|your·selves:你们自己|them·selves:他们自己|ev·er·y·one:每个人|ev·er·y·bod·y:大家/每个人|some·one:某人|some·bod·y:某人|an·y·one:任何人|an·y·bod·y:任何人|no·bod·y:没有人|no one:没有人|ev·er·y·thing:一切事物|some·thing:某事/某物|an·y·thing:任何事物|noth·ing:没有什么|be·tween:在…(两者)之间|a·mong:在…(三者以上)之中|op·po·site:在…对面|be·hind:在…后面|in front of:在…前面|be·side:在…旁边|next to:紧挨着|a·bove:在…上方|be·low:在…下方|un·der·neath:在…正下方|in·side:在…里面|out·side:在…外面|a·cross:横过/穿过|through:穿过(内部)|a·long:沿着|past:经过|to·wards:朝向|a·round:围绕/在周围|a·gainst:靠着/反对|with·out:没有|with·in:在…之内|dur·ing:在…期间|since:自从|un·til:直到|be·cause:因为|al·though:虽然|un·less:除非|while:当…的时候|wheth·er:是否|ei·ther:两者之一" },
+      { id: "ks2_t2", title: "12. 现代职业与职场 (Modern Careers)", pos: "n.", raw: "as·tro·naut:宇航员|en·gi·neer:工程师|ar·chi·tect:建筑师|law·yer:律师|judge:法官|re·por·ter:记者|jour·nal·ist:新闻工作者|ed·i·tor:编辑|pho·tog·ra·pher:摄影师|di·rec·tor:导演/总监|de·sign·er:设计师|pro·gram·mer:程序员|ac·coun·tant:会计师|bank·er:银行家|busi·ness·man:商人|sales·per·son:推销员|agent:代理人|detec·tive:侦探|of·fi·cer:警官/官员|fire·fight·er:消防员|res·cu·er:救援人员|mech·an·ic:机械修理工|elec·tri·cian:电工|plumb·er:水喉匠/水管工|car·pen·ter:木匠|hair·dress·er:发型师|bar·ber:理发师|tail·or:裁缝|flo·rist:花店店主|opti·cian:验光师|phar·ma·cist:药剂师|sur·geon:外科医生|pa·tient:病人|cli·ent:客户|cus·tom·er:顾客|pas·sen·ger:乘客|tour·ist:游客|guide:导游|au·di·ence:观众|spec·ta·tor:观众(比赛)|ath·lete:运动员|coach:教练|ref·er·ee:裁判员|cap·tain:队长|lead·er:领袖/组长|part·ner:伙伴/搭档|col·league:同事|staff:全体职员|com·pa·ny:公司|fac·to·ry:工厂" },
+      { id: "ks2_t3", title: "13. 学科与校园活动 (Subjects & Events)", pos: "n.", raw: "sub·ject:科目|math·e·mat·ics:数学|sci·ence:科学|ge·og·ra·phy:地理|his·to·ry:历史|lit·er·a·ture:文学|putong·hua:普通话|can·ton·ese:粤语|lan·guage:语言|art:视觉艺术|mu·sic:音乐|gym·nas·tics:体操|as·sem·bly:早会/周会|re·cess:小息/课间休息|timeta·ble:时间表|term:学期|sem·es·ter:学期|ho·li·day:假期|va·ca·tion:假期|ex·am·i·na·tion:考试|test:测验|quiz:小测验|mark:分数|grade:等级/年级|re·sult:成绩/结果|re·port:成绩表/报告|cer·tif·i·cate:证书|奖·状→award:奖项|prize:奖品|med·al:奖牌|tro·phy:奖杯|schol·ar·ship:奖学金|com·pe·ti·tion:比赛|con·test:竞赛|match:球赛/比赛|race:赛跑|sports day:运动会|pic·nic:旅行/野餐|ex·hi·bi·tion:展览|con·cert:音乐会|choir:合唱团|or·ches·tra:管弦乐团|dra·ma:戏剧|speech:演讲|de·bate:辩论|pro·ject:专题研习|sur·vey:问卷调查|dic·tion·ar·y:字典|en·cy·clo·pe·di·a:百科全书|in·for·ma·tion:资讯/信息" },
+      { id: "ks2_t4", title: "14. 节日、旅游与交通 (Festivals & Travel)", pos: "n.", raw: "fes·ti·val:节日|cel·e·bra·tion:庆祝|tra·di·tion:传统|cus·tom:习俗|lan·tern:灯笼|moon·cake:月饼|dump·ling:粽子/饺子|fire·work:烟花|fire·crack·er:鞭炮|drag·on:龙|par·ade:巡游|cos·tume:服装/戏服|rel·a·tive:亲戚|pack·et:利是/红包|fortune:运气|cal·en·dar:日历|jour·ney:旅程|trip:旅行|tour:游览|voy·age:航行|flight:航班|air·port:机场|run·way:跑道|pass·port:护照|vi·sa:签证|tick·et:车票/机票|lug·gage:行李|bag·gage:行李|suit·case:行李箱|ruck·sack:背包|back·pack:双肩包|sou·ve·nir:纪念品|post·card:明信片|cam·era:照相机|map:地图|guide·book:旅游指南|ho·tel:酒店|hostel:旅舍|des·ti·na·tion:目的地|plat·form:月台|sta·tion:车站|har·bour:海港|pier:码头|tun·nel:隧道|bridge:桥梁|high·way:高速公路|pave·ment:行人路|cross·ing:斑马线/路口|es·ca·la·tor:扶手电梯|ve·hi·cle:车辆" },
+      { id: "ks2_t5", title: "15. 情绪与性格品质 (Feelings & Character)", pos: "adj.", raw: "ner·vous:紧张的|anx·i·ous:焦虑的|wor·ried:担心的|afraid:害怕的|scared:恐惧的|fright·ened:受惊的|terr·i·fied:极度恐慌的|brave:勇敢的|cour·a·geous:有勇气的|con·fi·dent:自信的|proud:自豪的|ex·ci·ted:兴奋的|thrilled:非常激动的|cheer·ful:欢快的|delight·ed:高兴的|pleased:满意的|sat·is·fied:满足的|grateful:感激的|thank·ful:感谢的|sur·prised:惊讶的|a·mazed:惊奇的|shocked:震惊的|dis·ap·poin·ted:失望的|upset:心烦的/难过的|mi·ser·a·ble:痛苦的|lone·ly:孤独的|homesick:想家的|bored:无聊的|con·fused:困惑的|em·bar·rassed:尴尬的|ashamed:羞愧的|guil·ty:内疚的|jeal·ous:嫉妒的|en·vi·ous:羡慕的|pa·tient:有耐心的|im·pa·tient:不耐烦的|hon·est:诚实的|hum·ble:谦虚的|mod·est:谦逊的|gen·er·ous:慷慨的|sel·fish:自私的|greed·y:贪心的|dil·i·gent:勤奋的|hard-work·ing:努力的|la·zy:懒惰的|cur·i·ous:好奇的|care·ful:小心的|care·less:粗心的|sens·i·ble:明智的|friend·ly:友好的" },
+      { id: "ks2_t6", title: "16. 医疗健康与营养 (Health & Nutrition)", pos: "n./adj.", raw: "health:健康|healthy:健康的|fit·ness:体能/健康|ex·er·cise:运动/锻炼|di·et:日常饮食|bal·anced:均衡的|nu·tri·tion:营养|vi·ta·min:维他命/维生素|pro·tein:蛋白质|cal·ci·um:钙质|en·er·gy:能量/精力|fat:脂肪|sug·ar·y:含糖的|oil·y:油腻的|salty:咸的|spi·cy:辛辣的|sour:酸的|bit·ter:苦的|fresh:新鲜的|rotten:腐烂的|ill·ness:疾病|dis·ease:疾病|flu:流感|cough:咳嗽|sneeze:打喷嚏|run·ny nose:流鼻涕|sore throat:喉咙痛|head·ache:头痛|stom·ach·ache:胃痛|tooth·ache:牙痛|ear·ache:耳痛|back·ache:背痛|tem·per·a·ture:体温/发烧|wound:伤口|in·ju·ry:受伤|blood:血|bleed:流血|bruise:瘀伤|burn:烧伤/烫伤|pain:疼痛|pain·ful:痛的|diz·zy:头晕的|weak:虚弱的|med·i·cine:药物|pill:药丸|tab·let:药片|sy·rup:药水|ban·dage:绷带|plas·ter:创可贴|am·bu·lance:救护车" },
+      { id: "ks2_t7", title: "17. 自然灾害与环保 (Environment)", pos: "n./v.", raw: "en·vi·ron·ment:环境|na·ture:大自然|nat·u·ral:自然的|пла·net→plan·et:星球/地球|earth:地球/泥土|cli·mate:气候|weath·er:天气|tem·per·a·ture:气温|de·gree:度数|forecast:天气预报|rain·storm:暴雨|thun·der:雷|light·ning:闪电|ty·phoon:台风|hur·ri·cane:飓风|tor·na·do:龙卷风|flood:洪水/水灾|drought:干旱|earth·quake:地震|tsuna·mi:海啸|vol·ca·no:火山|dis·as·ter:灾难|pol·lu·tion:污染|pol·lute:污染(动词)|smoke:烟雾|fume:废气|rub·bish:垃圾|lit·ter:乱扔的垃圾|waste:废弃物/浪费|plas·tic:塑料|re·cy·cle:回收利用|re·use:重复使用|re·duce:减少|save:节约/拯救|pro·tect:保护|con·ser·va·tion:保育|forest:森林|jun·gle:丛林|des·ert:沙漠|o·cean:海洋|val·ley:山谷|stream:溪流|wild·life:野生生物|en·dan·gered:濒危的|ex·tinct:灭绝的|crea·ture:生物|in·sect:昆虫|rep·tile:爬行动物|mam·mal:哺乳动物|feath·er:羽毛" },
+      { id: "ks2_t8", title: "18. 家居电器与购物 (Appliances & Shop)", pos: "n.", raw: "fur·ni·ture:家具|ap·pli·ance:家用电器|mach·ine:机器|电·视→tel·e·vi·sion:电视机|ra·di·o:收音机|fan:风扇|air con·di·tion·er:冷气机/空调|heat·er:暖气机|fridge:雪柜/冰箱|freez·er:冰格|ov·en:焗炉/烤箱|mi·cro·wave:微波炉|cook·er:炉具|ket·tle:水壶|toast·er:多士炉|wash·ing ma·chine:洗衣机|va·cu·um clean·er:吸尘机|i·ron:熨斗|hair·dry·er:风筒/吹风机|lamp:台灯|torch:手电筒|bat·ter·y:电池|plug:插头|switch:开关|wire:电线|tap:水龙头|sink:洗碗槽|show·er:花洒/淋浴|towel:毛巾|soap:肥皂|sham·poo:洗发水|tooth·brush:牙刷|tooth·paste:牙膏|comb:梳子|scis·sors:剪刀|nee·dle:针|thread:线|but·ton:纽扣|zip:拉链|pock·et:口袋|wal·let:钱包|purse:小钱包|mon·ey:金钱|cash:现金|coin:硬币|note:纸币|price:价格|re·ceipt:收据|dis·count:折扣|bar·gain:便宜货" },
+      { id: "ks2_t9", title: "19. 进阶高频动作动词 (Action Verbs II)", pos: "v.", raw: "ac·cept:接受|re·fuse:拒绝|a·gree:同意|dis·a·gree:不同意|al·low:允许|for·bid:禁止|prom·ise:答应/承诺|de·cide:决定|choose:选择|pre·fer:更喜欢|ex·pect:期待/预料|hope:希望|wish:祝愿/希望|plan:计划|pre·pare:准备|ar·range:安排|or·gan·ize:组织|in·vite:邀请|vis·it:参观/拜访|join:参加|attend:出席|cel·e·brate:庆祝|en·joy:享受/喜爱|share:分享|bor·row:借入|lend:借出|re·turn:归还/返回|ex·change:交换|pay:付款|spend:花费(时间/金钱)|cost:价值/花费|save:储蓄/拯救|earn:赚取|collect:收集|search:搜寻|dis·cov·er:发现|in·vent:发明|cre·ate:创造|de·sign:设计|build:建造|re·pair:修理|fix:修理/固定|dam·age:损坏|de·stroy:摧毁|break:打破|drop:掉落|spill:溢出/洒出|pour:倒(液体)|mix:混合|boil:煮沸" },
+      { id: "ks2_t10", title: "20. 沟通思维动词与副词 (Thinking & Adv)", pos: "v./adv.", raw: "ex·plain:解释|de·scribe:描述|dis·cuss:讨论|ar·gue:争论|com·plain:投诉/抱怨|ap·ol·o·gize:道歉|for·give:原谅|thank:感谢|praise:表扬|blam·e:责备|warn:警告|ad·vise:劝告/建议|sug·gest:提议|rec·om·mend:推荐|in·form:通知|re·mind:提醒|an·nounce:宣布|in·tro·duce:介绍|greet:问候|wel·come:欢迎|whisper:低声说|shout:大喊|scream:尖叫|laugh:笑|smile:微笑|cry:哭|sigh:叹气|nod:点头|shake:摇动|wave:挥手|point:指向|stare:盯着看|notice:注意到|re·cog·nize:认出|re·mem·ber:记得|for·get:忘记|be·lieve:相信|doubt:怀疑|sup·pose:猜想/假设|im·ag·ine:想象|wonder:想知道|sol·ve:解决|improve:改善/进步|suc·ceed:成功|fail:失败|al·ways:总是|u·su·al·ly:通常|of·ten:经常|some·times:有时|sel·dom:很少" }
+    ]
+  },
+  KS3: {
+    name: "KS3 (中一至中三 S1–S3)", zhRatio: 30,
+    banner: "KS3 高手场 (S1–S3) • 30% 中文提示 • 500词 + 5语法 + 盲听特训",
+    themes: [
+      { id: "ks3_t1", title: "21. Media & Digital Tech (媒体与科技)", pos: "n./v.", raw: "com·mu·ni·ca·tion:沟通/通讯|med·i·a:媒体|jour·nal·ism:新闻业|broad·cast:广播/播映|pub·lish:出版/发布|mag·a·zine:杂志|arti·cle:文章|head·line:头条标题|col·umn:专栏|re·view:评论/影评|in·ter·view:采访/面试|doc·u·men·ta·ry:纪录片|ad·ver·tise·ment:广告|com·mer·cial:商业广告|spon·sor:赞助商|cam·paign:宣传活动|in·flu·ence:影响|per·suade:说服|con·vince:使信服|ex·ag·ger·ate:夸大|bi·as:偏见|ru·mour:谣言|gossip:流言蜚语|source:来源|re·li·a·ble:可靠的|ac·cu·rate:准确的|ob·jec·tive:客观的|sub·jec·tive:主观的|cen·sor·ship:审查|pri·va·cy:私隐|cy·ber·bul·ly·ing:网络欺凌|ad·dic·tion:成瘾/沉迷|net·work:网络|plat·form:平台|pro·file:个人档案|ac·count:账户|pass·word:密码|se·cu·ri·ty:安全|ha·cker:黑客|vi·rus:病毒|soft·ware:软件|hard·ware:硬件|ap·pli·ca·tion:应用程序|data·base:数据库|down·load:下载|up·load:上传|stream:串流播放|vir·tu·al:虚拟的|dig·i·tal:数码的|tech·nol·o·gy:科技" },
+      { id: "ks3_t2", title: "22. Community & Charity (社区与慈善)", pos: "n./adj.", raw: "com·mu·ni·ty:社区|so·ci·e·ty:社会|cit·i·zen:公民|res·i·dent:居民|pop·u·la·tion:人口|mi·grant:移民|im·mi·grant:新移民|ref·u·gee:难民|mi·nor·i·ty:少数群体|ma·jor·i·ty:大多数|char·i·ty:慈善机构|vol·un·teer:义工/志愿者|do·na·tion:捐款/捐赠|fund·rais·ing:筹款|spon·sor·ship:赞助|wel·fare:福利|pov·er·ty:贫穷|wealth:财富|in·come:收入|un·em·ploy·ment:失业|home·less:无家可归的|un·der·priv·i·leged:弱势的/贫困的|el·der·ly:长者/年长的|orph·an:孤儿|dis·a·bil·i·ty:残障|hand·i·capped:有缺陷的|ac·ces·si·ble:无障碍的/可达的|e·qual·i·ty:平等|discrim·i·na·tion:歧视|prej·u·dice:偏见|ster·e·o·type:刻板印象|har·mo·ny:和谐|con·flict:冲突|vi·o·lence:暴力|crime:犯罪|crim·i·nal:罪犯|vic·tim:受害者|wit·ness:目击者|just·ice:公义/司法|re·spon·si·bil·i·ty:责任|du·ty:义务|right:权利|sym·pa·thy:同情|em·pa·thy:同理心|grat·i·tude:感激|gen·er·os·i·ty:慷慨|co·op·er·a·tion:合作|con·tri·bu·tion:贡献|assist·ance:援助|sup·port:支持" },
+      { id: "ks3_t3", title: "23. Education & Careers (学业与规划)", pos: "n./v.", raw: "cur·ric·u·lum:课程|syl·la·bus:教学大纲|ac·a·dem·ic:学术的|compul·so·ry:必修的/强制的|e·lec·tive:选修科|as·sign·ment:功课/作业|es·say:文章/论文|compo·si·tion:作文|pres·en·ta·tion:演示/汇报|sem·i·nar:研讨会|lec·ture:讲座|tu·to·ri·al:导修课|as·sess·ment:评估|e·val·u·a·tion:评价|cri·te·ri·a:标准|per·for·mance:表现|prog·ress:进度/进步|ach·ieve·ment:成就|qual·i·fi·ca·tion:学历/资格|di·plo·ma:文凭|de·gree:学位|u·ni·ver·si·ty:大学|col·lege:学院|in·sti·tute:学会/学院|re·search:研究|concentra·tion:专注力|at·ten·tion:注意力|mem·o·rize:记忆/背诵|re·vise:温习/修订|re·view:复习|an·a·lyze:分析|sum·ma·rize:总结|con·clude:得出结论|dis·ci·pline:纪律|punctu·al:准时的|attend·ance:出勤率|ab·sence:缺席|pres·sure:压力|stress·ful:充满压力的|anx·i·e·ty:焦虑|mo·ti·va·tion:动力|am·bi·tion:抱负|op·por·tu·ni·ty:机会|ex·pe·ri·ence:经验|intern·ship:实习|ap·pli·cant:申请人|can·di·date:候选人/考生|ref·er·ence:推荐信/参考|pro·fes·sion:专业/职业|ca·reer:职业生涯" },
+      { id: "ks3_t4", title: "24. Arts, Film & Literature (艺术与文学)", pos: "n.", raw: "lit·er·a·ture:文学|fic·tion:小说/虚构作品|non-fic·tion:非虚构作品|nov·el:长篇小说|nov·el·ist:小说家|po·em:诗歌|po·et:诗人|po·et·ry:诗歌(总称)|rhyme:押韵|rhythm:节奏|play·wright:剧作家|script:剧本|plot:情节|scene:场景|episode:一集/片段|cli·max:高潮|end·ing:结局|char·ac·ter:角色/人物|he·ro·ine:女主角|vil·lain:反派角色|bg→back·ground:背景|set·ting:故事背景|theme:主题|mes·sage:寓意/信息|mys·ter·y:悬疑/神秘|detec·tive:侦探故事|ro·mance:浪漫爱情|trage·dy:悲剧|com·e·dy:喜剧|fan·ta·sy:奇幻作品|bi·og·ra·phy:传记|au·to·bi·og·ra·phy:自传|the·a·tre:剧院|stage:舞台|cur·tain:幕布|spot·light:聚光灯|re·hears·al:彩排|au·di·tion:试镜|costume:戏服|make-up:化妆|in·stru·ment:乐器|sym·pho·ny:交响乐|con·duc·tor:指挥家|gal·ler·y:美术馆|sculp·ture:雕塑|por·trait:肖像画|land·scape:风景画|ex·hi·bi·tion:展览|mas·ter·piece:杰作|im·ag·i·na·tion:想象力" },
+      { id: "ks3_t5", title: "25. Science & Lab Inquiry (科学与实验)", pos: "n./v.", raw: "sci·en·tif·ic:科学的|la·bor·a·to·ry:实验室|ex·per·i·ment:实验|in·ves·ti·gate:调查/研究|ob·serve:观察|ob·ser·va·tion:观察结果|hy·poth·e·sis:假设|the·o·ry:理论|ev·i·dence:证据|proof:证明|con·clu·sion:结论|instru·ment:仪器|eq·uip·ment:设备|mi·cro·scope:显微镜|tel·e·scope:望远镜|ther·mom·e·ter:温度计|chem·i·cal:化学物质|sub·stance:物质|el·e·ment:元素|ox·y·gen:氧气|car·bon:碳|hy·dro·gen:氢气|li·quid:液体|sol·id:固体|gas:气体|evap·o·rate:蒸发|dissolve:溶解|freeze:结冰|melt:融化|react:起反应|grav·i·ty:重力/地心吸力|frict·ion:摩擦力|mag·net:磁铁|elec·tric·i·ty:电力|cur·rent:电流|cir·cuit:电路|ra·di·a·tion:辐射|u·ni·verse:宇宙|gal·ax·y:星系|so·lar sys·tem:太阳系|or·bit:轨道|sat·el·lite:卫星|space·craft:太空船|rock·et:火箭|astron·o·mer:天文学家|bi·ol·o·gy:生物学|chem·is·try:化学|phys·ics:物理学|gen·er·ate:产生|in·ven·tion:发明" },
+      { id: "ks3_t6", title: "26. Climate & Ecology (气候与生态)", pos: "n./adj.", raw: "at·mos·phere:大气层|green·house:温室|e·mis·sion:排放|car·bon di·ox·ide:二氧化碳|glob·al warm·ing:全球暖化|cli·mate change:气候变化|ex·treme:极端的|cat·a·stroph·ic:灾难性的|glaci·er:冰川|polar:极地的|de·for·es·ta·tion:砍伐森林|desert·i·fi·ca·tion:荒漠化|e·ro·sion:侵蚀|e·cos·ys·tem:生态系统|hab·i·tat:栖息地|bi·o·di·ver·si·ty:生物多样性|spe·cies:物种|pred·a·tor:捕食者|prey:猎物|food chain:食物链|ex·tinc·tion:灭绝|poach·ing:非法盗猎|con·ser·va·tion:自然保育|re·serve:自然保护区|sanctu·ar·y:庇护所|re·new·a·ble:可再生的|non-re·new·a·ble:不可再生的|so·lar:太阳能的|ge·o·ther·mal:地热的|hydro·e·lec·tric:水力发电的|wind tur·bine:风力涡轮机|fos·sil fu·el:化石燃料|coal:煤炭|pe·tro·le·um:石油|al·ter·na·tive:替代的|eco-friend·ly:环保的|bi·o·de·grad·a·ble:可生物降解的|dis·pos·a·ble:一次性的|con·tam·i·nate:污染/弄脏|tox·ic:有毒的|sew·age:污水|land·fill:堆填区|in·cin·er·a·tor:焚化炉|short·age:短缺|scarc·i·ty:匮乏|famine:饥荒|pre·serve:保存/保护|restore:恢复/修复|bal·ance:平衡|sur·vi·val:生存" },
+      { id: "ks3_t7", title: "27. Sports & Adventure (体育与历奇)", pos: "n./v.", raw: "tour·na·ment:锦标赛|cham·pi·on·ship:冠军赛|cham·pi·on:冠军|run·ner-up:亚军|fi·nal·ist:决赛选手|op·po·nent:对手|ri·val:竞争者|teammate:队友|stadi·um:体育场|a·re·na:竞技场|court:球场(网球/篮球)|pitch:足球场|track:跑道|gym·na·si·um:体育馆|mar·a·thon:马拉松|sprint:短跑冲刺|re·lay:接力赛|hur·dle:跨栏|arch·er·y:射箭|fenc·ing:剑击|bad·min·ton:羽毛球|squash:壁球|rug·by:榄球|hock·ey:曲棍球|vo·lley·ball:排球|athlet·ics:田径运动|ad·ven·ture:历奇/冒险|ex·pe·di·tion:远征/探险|hike:远足/行山|trail:山径|camp·site:营地|tent:帐篷|com·pass:指南针|bin·oc·u·lars:双筒望远镜|hel·met:头盔|life·jack·et:救生衣|ca·noe·ing:独木舟|kay·ak·ing:皮划艇|rock climb·ing:攀石|par·a·chute:降落伞|en·dur·ance:耐力|stam·i·na:体力/耐力|agil·i·ty:敏捷度|flex·i·bil·i·ty:柔韧性|strength:力量|tech·nique:技巧|strat·e·gy:策略|vic·to·ry:胜利|de·feat:击败/失败|par·tic·i·pate:参与" },
+      { id: "ks3_t8", title: "28. Global Culture & Tourism (文化与旅游)", pos: "n./adj.", raw: "her·i·tage:遗产|mon·u·ment:纪念碑/古迹|land·mark:地标|pal·ace:宫殿|cas·tle:城堡|tem·ple:寺庙|ca·the·dral:大教堂|mosque:清真寺|mu·se·um:博物馆|ru·in:遗迹/废墟|stat·ue:雕像|arch·i·tec·ture:建筑风格|an·cient:古代的|his·tor·ic:有历史意义的|mod·ern:现代的|con·tem·po·rar·y:当代的|civ·i·li·za·tion:文明|dynas·ty:朝代|em·pire:帝国|em·per·or:皇帝|cul·tur·al:文化的|rit·u·al:仪式|cer·e·mo·ny:典礼|anniver·sa·ry:周年纪念|carnival:嘉年华|hospital·i·ty:好客/款待|cui·sine:菜肴/美食|del·i·ca·cy:佳肴|spe·cial·ty:特产|itiner·ar·y:行程表|bro·chure:宣传小册子|ac·com·mo·da·tion:住宿|res·er·va·tion:预订|vacan·cy:空房/空缺|cur·ren·cy:货币|ex·change rate:汇率|cus·toms:海关|im·mi·gra·tion:入境处|de·par·ture:出发/离境|ar·ri·val:抵达|board·ing pass:登机证|ter·mi·nal:客运大楼|delay:延误|can·cel·la·tion:取消|in·sur·ance:保险|sou·ve·nir:纪念品|craft:手工艺|local:当地的|for·eign:外国的|in·ter·na·tion·al:国际的" },
+      { id: "ks3_t9", title: "29. Consumerism & Finance (消费与理财)", pos: "n./v.", raw: "con·sum·er:消费者|客·户→cus·tom·er:顾客|pur·chase:购买|trans·ac·tion:交易|mer·chan·dise:商品|prod·uct:产品|brand:品牌|qual·i·ty:质量|quan·ti·ty:数量|pack·ag·ing:包装|la·bel:标签|in·gre·di·ent:成分/配料|guar·an·tee:保修/保证|war·ran·ty:保养期|re·fund:退款|ex·change:退换|com·plaint:投诉|re·place·ment:替换品|defec·tive:有瑕疵的|gen·u·ine:真正的/正品的|fake:假冒的|im·i·ta·tion:仿制品|lux·u·ry:奢侈品|ne·ces·si·ty:必需品|af·ford·a·ble:负担得起的|ex·pen·sive:昂贵的|rea·son·a·ble:合理的|worth:值得/价值|val·u·a·ble:贵重的|bud·get:预算|ex·pense:开支|al·low·ance:零用钱/津贴|sav·ings:储蓄|ac·count:账户|de·pos·it:存款/按金|with·draw:提款|in·ter·est:利息|loan:贷款|debt:债务|cred·it card:信用卡|cheque:支票|in·vest:投资|prof·it:利润|loss:亏损|tax:税项|im·port:进口|ex·port:出口|retail:零售|whole·sale:批发|com·mer·cial:商业的" },
+      { id: "ks3_t10", title: "30. Connectives & Verbs (逻辑连接词)", pos: "adv./v.", raw: "how·ev·er:然而|there·fore:因此|more·o·ver:此外/而且|fur·ther·more:此外|be·sides:除…之外/况且|nev·er·the·less:尽管如此|con·se·quent·ly:因此/结果|mean·while:与此同时|oth·er·wise:否则|in·stead:反而/代替|de·spite:尽管|al·though:虽然|where·as:然而/鉴于|sim·i·lar·ly:同样地|like·wise:同样地|con·verse·ly:相反地|spe·cif·i·cal·ly:具体来说|par·tic·u·lar·ly:尤其/特别|es·pe·cial·ly:特别|gen·er·al·ly:通常/普遍地|apparent·ly:显然地|ob·vi·ous·ly:明显地|cer·tain·ly:当然/必定|def·i·nite·ly:肯定地|prob·a·bly:很可能|pos·si·bly:可能|fortu·nate·ly:幸运地|un·for·tu·nate·ly:不幸地|grad·u·al·ly:逐渐地|immed·i·ate·ly:立即|eventu·al·ly:最终|ul·ti·mate·ly:归根结底|frequent·ly:频繁地|oc·ca·sion·al·ly:偶尔|rare·ly:罕有地|hard·ly:几乎不|exact·ly:确切地|ap·prox·i·mate·ly:大约|ac·quire:获得/习得|adapt:适应/改编|ad·just:调整|af·fect:影响|al·ter:改变|ap·proach:接近/方法|as·sume:假定/认为|at·tain:达到/获得|av·oid:避免|com·pare:比较|con·trast:对比|de·ter·mine:决定/查明" }
+    ]
+  },
+  KS4: {
+    name: "KS4 (中四至中六 HKDSE)", zhRatio: 0,
+    banner: "KS4 Boss Mode (HKDSE) • 0% Chinese / 100% English Immersion",
+    themes: [
+      { id: "ks4_t1", title: "31. Urbanization & Sustainable Cities", pos: "n./adj.", raw: "ur·ban·i·za·tion:the process of making an area more city-like|in·fra·struc·ture:basic physical systems of a city such as transport and power|sus·tain·a·ble:able to be maintained without depleting natural resources|re·vi·tal·i·za·tion:giving new life and vitality to an old urban district|re·de·vel·op·ment:rebuilding or renovating old urban buildings|con·ges·tion:overcrowding and traffic blockage on roads|de·mo·graph·ic:relating to the statistical structure of populations|den·si·ty:the number of people or buildings crowded into a space|sub·ur·ban:relating to outlying residential districts of a city|met·ro·pol·i·tan:relating to a large metropolis or major city|zon·ing:dividing land into areas for specific urban uses|re·cla·ma·tion:creating new land from oceans or riverbeds|her·i·tage:valued historic buildings and cultural traditions|con·ser·va·tion:preservation and protection of historic or natural sites|af·ford·a·ble:reasonably priced for ordinary citizens|sub·si·dized:financially supported by the government to lower costs|ten·ant:a person who rents a flat or property from a landlord|land·lord:an owner of property who leases it to others|mort·gage:a legal loan agreement used to buy real estate|evic·tion:the action of expelling someone from a property|slum:an overcrowded urban street or district inhabited by very poor people|gentri·fi·ca·tion:renovating poor urban areas through an influx of wealthier residents|san·i·ta·tion:conditions relating to public health and clean sewage disposal|u·til·i·ty:essential public service such as electricity, gas, or water|ped·es·tri·an·i·za·tion:converting a street for the exclusive use of walkers|ac·ces·si·bil·i·ty:the quality of being easily reached or entered by all citizens|commute:travel some distance between one's home and place of work regularly|transit:the carrying of passengers via public transport networks|em·is·sion:the production and discharge of gases or radiation|pollu·tant:a substance that pollutes water, air, or land|liv·a·bil·i·ty:the degree to which a city is suitable and pleasant for living|a·men·i·ty:a desirable or useful facility of a building or place|recre·a·tion·al:relating to leisure activities and public parks|estheti·c:concerned with beauty or the appreciation of visual appearance|archi·tec·tur·al:relating to the design and construction of buildings|ren·o·va·tion:the action of repairing and improving an old building|de·mo·li·tion:the action of pulling or knocking down a building|alloca·tion:the action of distributing resources or public housing|short·fall:a deficit of something required or expected, such as land|spec·u·la·tion:investing in property in the hope of short-term gain|fluc·tu·a·tion:an irregular rising and falling in prices or numbers|ac·com·mo·date:provide lodging or sufficient space for residents|de·ter·i·o·rate:become progressively worse or fall into disrepair|en·croach:intrude gradually on natural territory or country parks|mit·i·gate:make less severe, serious, or painful|op·ti·mize:make the best or most effective use of space or resources|pri·or·i·tize:designate or treat something as more important|reg·u·late:control or supervise by means of rules and laws|trans·form:make a thorough or dramatic change in the form of a district|vi·a·ble:capable of working successfully; feasible" },
+      { id: "ks4_t2", title: "32. Macroeconomics & Business", pos: "n./adj.", raw: "globa·li·za·tion:the process by which businesses operate on an international scale|pros·per·i·ty:the state of being economically successful and thriving|re·ces·sion:a period of temporary economic decline and falling trade|in·fla·tion:a general increase in prices and fall in purchasing value of money|de·fla·tion:reduction of the general level of prices in an economy|stagnation:lack of economic growth, activity, or development|prod·uc·tiv·i·ty:the effectiveness of productive effort in industry|competi·tive·ness:the ability of a business or economy to compete successfully|en·tre·pre·neur:a person who sets up a business, taking on financial risks|in·no·va·tion:a new method, idea, or product that drives growth|mon·op·o·ly:exclusive possession or control of the supply of a commodity|cor·po·ra·tion:a large company or group of companies authorized to act as a single entity|multina·tion·al:operating in several countries across the world|subsidi·ar·y:a company controlled by a holding or parent company|merg·er:a combination of two things, especially companies, into one|ac·qui·si·tion:an asset or object bought or obtained by a firm|di·vi·dend:a sum of money paid regularly by a company to its shareholders|share·hold·er:an owner of shares in a company|stake·hold·er:a person with an interest or concern in a business or policy|rev·e·nue:income, especially when of a company or government|ex·pen·di·ture:the action of spending funds or total government spending|def·i·cit:the amount by which spending exceeds income|sur·plus:an amount of something left over when requirements have been met|tar·iff:a tax or duty to be paid on a particular class of imports or exports|quo·ta:a limited quantity of a particular product which under official controls can be produced|sanction:a threatened penalty or trade restriction against a nation|cur·ren·cy:a system of money in general use in a particular country|de·pre·ci·a·tion:a reduction in the value of an asset or currency over time|ap·pre·ci·a·tion:an increase in the monetary value of an asset|incen·tive:a payment or concession to stimulate greater output or investment|sub·si·dy:a sum of money granted by the state to help an industry|privat·i·za·tion:the transfer of a business from public to private ownership|dereg·u·la·tion:the removal of regulations or restrictions in a particular industry|out·sourc·ing:obtaining goods or services from an outside or foreign supplier|supply chain:the sequence of processes involved in the production and distribution of a commodity|lo·gis·tics:the detailed organization and implementation of a complex operation|retail·er:a person or business that sells goods to the public|con·sump·tion:the using up of goods, energy, or services|lu·cra·tive:producing a great deal of profit|fis·cal:relating to government revenue, especially taxes|mon·e·tar·y:relating to money or currency policy|in·e·qual·i·ty:unfair difference in wealth or opportunity|dis·par·i·ty:a great difference between economic groups|bank·rupt·cy:the state of being completely unable to pay debts|li·a·bil·i·ty:the state of being legally or financially responsible|sol·ven·cy:the possession of assets in excess of liabilities|divers·i·fy:enlarge or vary the range of products or field of operation|fluc·tu·ate:rise and fall irregularly in number or amount|stim·u·late:encourage development of or increased activity in an economy|sus·tain:strengthen or support physically or economically over time" },
+      { id: "ks4_t3", title: "33. Public Health & Psychology", pos: "n./adj.", raw: "psy·cho·log·i·cal:affecting or arising in the mind and emotional state|re·sil·i·ence:the capacity to recover quickly from difficulties and stress|sed·en·tar·y:tending to spend much time seated; physically inactive|pre·ven·ta·tive:designed to keep illness or harm from occurring|re·ha·bil·i·ta·tion:restoring someone to health or normal life through therapy|chron·ic:persisting for a long time or constantly recurring|a·cute:present or experienced to a severe or intense degree|ep·i·dem·ic:a widespread occurrence of an infectious disease in a community|pan·dem·ic:a disease prevalent over a whole country or the world|con·ta·gious:spread from one person or organism to another by contact|im·mu·ni·ty:the ability of an organism to resist a particular infection|vac·ci·na·tion:treatment with a vaccine to produce immunity against a disease|an·ti·bi·ot·ic:a medicine that inhibits the growth of or destroys microorganisms|di·ag·no·sis:the identification of the nature of an illness by examination|symp·tom:a physical or mental feature which is regarded as indicating a condition|prog·no·sis:a forecast of the likely course of a medical condition|ther·a·peu·tic:relating to the healing of disease or mental relaxation|phar·ma·ceu·ti·cal:relating to medicinal drugs, their preparation, or sale|nu·tri·tion·al:relating to the process of providing food necessary for health|met·a·bol·ic:relating to the chemical processes within a living organism|o·be·si·ty:the condition of being grossly fat or overweight|mal·nu·tri·tion:lack of proper nutrition, caused by not having enough to eat|de·преs·sion→de·pres·sion:feelings of severe despondency and dejection|anx·i·e·ty:a feeling of worry, nervousness, or unease|burn·out:physical or mental collapse caused by overwork or stress|insom·ni·a:habitual sleeplessness; inability to sleep|fa·tigue:extreme tiredness resulting from mental or physical exertion|self-es·teem:confidence in one's own worth or abilities|mind·ful·ness:a mental state achieved by focusing awareness on the present moment|stigma:a mark of disgrace associated with a particular circumstance or mental illness|lon·gev·i·ty:long life or long existence|mor·tal·i·ty:the state of being subject to death, or death rate|morb·id·i·ty:the rate of disease in a population|hy·giene:conditions or practices conducive to maintaining health|san·i·tar·y:relating to the conditions that affect hygiene and health|quar·an·tine:isolation imposed on people or animals to prevent disease spread|palli·a·tive:relieving pain without dealing with the cause of the condition|holis·tic:characterized by the treatment of the whole person, including mental factors|cog·ni·tive:relating to the mental action of acquiring knowledge and understanding|neuro·log·i·cal:relating to the anatomy, functions, and disorders of nerves|hered·i·tar·y:conferred by or based on inheritance from parents|sus·cep·ti·ble:likely or liable to be influenced or harmed by a particular thing|vul·ner·a·ble:exposed to the possibility of being attacked or harmed|al·le·vi·ate:make suffering, deficiency, or a problem less severe|ag·gra·vate:make a problem, injury, or offence worse or more serious|de·te·ri·o·rate:become progressively worse in health|erad·i·cate:destroy completely; put an end to a disease|mon·i·tor:observe and check the progress or quality of something over time|prescribe:advise and authorize the use of a medicine or treatment|recuper·ate:recover from illness or exertion" },
+      { id: "ks4_t4", title: "34. Law, Governance & Ethics", pos: "n./adj.", raw: "leg·is·la·tion:laws, considered collectively, enacted by a legislature|reg·u·la·tion:a rule or directive made and maintained by an authority|con·sti·tu·tion:a body of fundamental principles according to which a state is governed|ju·di·ci·ar·y:the judicial authorities of a country; judges collectively|tri·bu·nal:a court of justice or body appointed to adjudicate disputes|pros·e·cu·tion:the institution and conducting of legal proceedings against someone|de·fend·ant:an individual, company, or institution sued or accused in a court|ver·dict:a decision on an issue of fact in a civil or criminal case|sen·tence:the punishment assigned to a defendant found guilty by a court|de·ter·rent:a thing that discourages or is intended to discourage crime|re·ha·bil·i·tate:restore to normal life by training after imprisonment|offend·er:a person who commits an illegal act|ju·ve·nile:for or relating to young people who are not yet adults|delin·quen·cy:minor crime, especially that committed by young people|sur·veil·lance:close observation, especially of a suspected spy or public area|cen·sor·ship:the suppression or prohibition of any parts of books, films, or news|in·tel·lec·tu·al:relating to creative ownership, such as copyright and patents|in·fringe·ment:the action of breaking the terms of a law or copyright|pla·gia·rism:the practice of taking someone else's work and passing it off as one's own|in·teg·ri·ty:the quality of being honest and having strong moral principles|ac·count·a·bil·i·ty:the fact or condition of being responsible and answerable|trans·par·en·cy:the condition of operating in an open way without hidden agendas|cor·rup·tion:dishonest or fraudulent conduct by those in power|brib·er·y:the giving or offering of a bribe to influence an action|eth·i·cal:relating to moral principles or the branch of knowledge dealing with these|mor·al·i·ty:principles concerning the distinction between right and wrong|di·lem·ma:a situation in which a difficult choice has to be made|con·tro·ver·sy:prolonged public disagreement or heated discussion|di·ver·si·ty:the practice or quality of including people from a range of backgrounds|in·clu·siv·i·ty:the practice or policy of providing equal access to opportunities|tol·er·ance:willingness to accept feelings, habits, or beliefs that are different|auton·o·my:freedom from external control or influence; independence|sover·eign·ty:supreme power or authority of a state|dip·lo·mat·ic:of or concerning the profession, activity, or skill of managing international relations|treaty:a formally concluded and ratified agreement between states|hu·man·i·tar·i·an:concerned with or seeking to promote human welfare|philan·thro·py:the desire to promote the welfare of others, expressed by donations|compul·so·ry:required by law or a rule; obligatory|man·da·to·ry:required by law or mandate; compulsory|vol·un·tar·y:done, given, or acting of one's own free will|legit·i·mate:conforming to the law or to rules; justifiable|il·lic·it:forbidden by law, rules, or custom|ar·bi·trar·y:based on random choice or personal whim, rather than reason|im·par·tial:treating all rivals or disputants equally; fair and just|en·force:compel observance of or compliance with a law, rule, or obligation|im·ple·ment:put a decision, plan, agreement, or law into effect|a·bol·ish:formally put an end to a system, practice, or institution|amend:make minor changes to a text or piece of legislation to make it fairer|com·ply:act in accordance with a wish, rule, or command|vi·o·late:break or fail to comply with a rule or formal agreement" },
+      { id: "ks4_t5", title: "35. AI, Automation & Future Science", pos: "n./adj.", raw: "ar·ti·fi·cial:made or produced by human beings rather than occurring naturally|au·to·ma·tion:the use of largely automatic equipment in a system of work|al·go·rithm:a process or set of rules to be followed in calculations by a computer|ro·bot·ics:the branch of technology that deals with the design and operation of robots|cy·ber·se·cu·ri·ty:the state of being protected against criminal use of electronic data|en·cryp·tion:the process of converting information or data into a secret code|au·then·tic·i·ty:the quality of being genuine, real, and not a counterfeit|sim·u·la·tion:imitation of a situation or process using computer models|pro·to·type:a first, typical or preliminary model of a machine|in·no·va·tive:featuring new methods; advanced and original|un·prec·e·den·ted:never done or known before in history|rev·o·lu·tion·ar·y:involving or causing a complete or dramatic change|ob·so·lete:no longer produced or used; out of date|redun·dant:no longer needed or useful; superfluous|ef·fi·cien·cy:achieving maximum productivity with minimum wasted effort|scal·a·ble:able to be changed in size or scale to meet growing demand|bi·o·tech·nol·o·gy:exploitation of biological processes for industrial and medical purposes|gen·et·ic:relating to genes or heredity|mod·i·fi·ca·tion:the action of altering or changing the structure of something|clon·ing:propagating an organism or cell as an identical genetic copy|nan·o·tech·nol·o·gy:the branch of technology that deals with dimensions of microscopic atoms|quan·tum:a discrete quantity of energy proportional in magnitude to frequency|tele·com·mu·ni·ca·tion:communication over a distance by cable, telegraph, or broadcasting|band·width:the capacity for data transfer of an electronic communications system|auton·o·mous:having the freedom to act independently, such as self-driving vehicles|sur·veil·lance:automated monitoring of behavior or activities|bi·o·met·ric:relating to the measurement of unique physical characteristics like fingerprints|aug·ment·ed:having been made greater in size or value, such as augmented reality|im·mer·sive:generating a three-dimensional image which appears to surround the user|de·ploy·ment:the action of bringing resources or systems into effective action|in·te·gra·tion:the action or process of combining systems so they work together|inter·face:a point where two systems, subjects, or organizations meet and interact|data·min·ing:the practice of examining large databases in order to generate new information|an·a·lyt·ics:the systematic computational analysis of data or statistics|cloud com·put·ing:the practice of using a network of remote servers hosted on the internet|dis·rup·tive:causing radical change to an existing industry or market by means of innovation|adapt·a·bil·i·ty:the quality of being able to adjust to new conditions|vers·a·til·i·ty:ability to adapt or be adapted to many different functions|precis·ion:the quality, condition, or fact of being exact and accurate|reli·a·bil·i·ty:the quality of performing consistently well|mal·func·tion:fail to function normally or satisfactorily|vulner·a·bil·i·ty:a weakness in a computer system that can be exploited|breach:an act of breaking or failing to observe a security barrier|acceler·ate:begin to move more quickly or happen sooner|automa·te:convert a process or facility to largely automatic operation|cal·i·brate:carefully assess, set, or adjust the accuracy of a device|facil·i·tate:make an action or process easy or easier|revolu·tion·ize:change something radically or fundamentally|stream·line:make an organization or system more efficient by employing faster methods|syn·the·size:combine a number of things into a coherent whole" },
+      { id: "ks4_t6", title: "36. Academic Discourse & Logic", pos: "n./adv.", raw: "phe·nom·e·non:a fact or situation that is observed to exist or happen|hy·poth·e·sis:a supposition or proposed explanation made on the basis of limited evidence|prem·ise:a previous statement or proposition from which another is inferred|con·ten·tion:an assertion, especially one maintained in argument|as·ser·tion:a confident and forceful statement of fact or belief|pro·po·nent:a person who advocates a theory, proposal, or course of action|ad·vo·cate:publicly recommend or support a particular cause or policy|op·po·nent:someone who competes against or argues against a proposal|skep·tic:a person inclined to question or doubt accepted opinions|con·sen·sus:a general agreement among a group of people|un·an·i·mous:fully in agreement among all people involved|con·tro·ver·sial:giving rise or likely to give rise to public disagreement|de·bat·a·ble:open to discussion or argument; not certain|am·big·u·ous:open to more than one interpretation; not having one obvious meaning|vague:of uncertain, indefinite, or unclear character or meaning|ex·plic·it:stated clearly and in detail, leaving no room for confusion|im·plic·it:suggested though not directly expressed|in·her·ent:existing in something as a permanent, essential, or characteristic attribute|in·триn·sic→in·trin·sic:belonging naturally; essential|fun·da·men·tal:forming a necessary base or core; of central importance|piv·ot·al:of crucial importance in relation to the development or success of something|sig·nif·i·cant:sufficiently great or important to be worthy of attention|neg·li·gi·ble:so small or unimportant as to be not worth considering|mar·gin·al:minor and not important; not central|in·ev·i·ta·ble:certain to happen; unavoidable|un·de·ni·a·ble:unable to be denied or disputed; unquestionably true|ir·ref·u·ta·ble:impossible to deny or disprove|plau·si·ble:seeming reasonable or probable|feasi·ble:possible to do easily or conveniently|vi·a·ble:capable of working successfully|par·a·dox:a seemingly absurd or contradictory statement that may be true|iron·y:a state of affairs that appears deliberately contrary to what one expects|anal·o·gy:a comparison between one thing and another for explanation|dis·crep·an·cy:an illogical or surprising lack of compatibility between two facts|contra·dic·tion:a combination of statements, ideas, or features which are opposed|cor·re·la·tion:a mutual relationship or connection between two or more things|caus·a·tion:the action of causing something; cause and effect|im·pli·ca·tion:the conclusion that can be drawn from something although it is not explicitly stated|ram·i·fi·ca·tion:a complex or unwelcome consequence of an action or event|re·per·cus·sion:an unintended consequence occurring some time after an event|just·i·fi·ca·tion:good reason or explanation for something that exists|ra·tio·nale:a set of reasons or a logical basis for a course of action|per·spec·tive:a particular attitude towards or way of regarding something|stan·dpoint:an attitude to a particular issue; a point of view|bi·ased:unfairly prejudiced for or against someone or something|ob·jec·tiv·i·ty:the quality of being based on facts rather than feelings|val·id·i·ty:the quality of being logically or factually sound|falla·cy:a mistaken belief, especially one based on unsound argument|con·se·quent·ly:as a result; therefore|nev·er·the·less:in spite of that; notwithstanding" },
+      { id: "ks4_t7", title: "37. Analytical Verbs (AWL)", pos: "v.", raw: "ac·knowl·edge:accept or admit the existence or truth of a fact|addressed:think about and begin to deal with an issue or problem|al·lege:claim or assert that someone has done something illegal without proof|al·lo·cate:distribute resources or duties for a particular purpose|an·tic·i·pate:regard as probable; expect or predict and prepare for|ap·praise:assess the value or quality of performance|as·cer·tain:find something out for certain; make sure of|at·trib·ute:regard something as being caused by a specific factor|au·thor·ize:give official permission for or approval to an undertaking|bol·ster:support or strengthen; prop up|cat·e·go·rize:place in a particular class or group|clar·i·fy:make a statement or situation less confused and more comprehensible|co·in·cide:occur at or during the same time|col·lab·o·rate:work jointly on an activity or project|com·pen·sate:give someone something, typically money, in recognition of loss|com·pile:produce a list or report by assembling information collected from other sources|com·ple·ment:add to something in a way that enhances or improves it|com·prise:consist of; be made up of|con·ceive:form or devise a plan or idea in the mind|con·cede:admit that something is true or valid after first denying or resisting it|con·form:comply with rules, standards, or laws|con·sol·i·date:make something physically stronger or more solid; combine|con·strain:severely restrict the scope, extent, or activity of|con·sti·tute:be a part of a whole; amount to|con·template:look thoughtfully for a long time at; think profoundly|con·tra·dict:deny the truth of a statement by asserting the opposite|con·vene:come or bring together for a meeting or activity|cor·rob·o·rate:confirm or give support to a statement, theory, or finding|cul·mi·nate:reach a climax or point of highest development|de·duce:arrive at a fact or a conclusion by reasoning|de·pict:show or represent by a drawing, painting, or verbal description|de·rive:obtain something from a specified source|de·ter:discourage someone from doing something by instilling doubt or fear|de·vi·ate:depart from an established course or standard|dif·fer·en·ti·ate:recognize or ascertain what makes someone or something different|di·min·ish:make or become less in size, importance, or value|dis·cern:perceive or recognize something with difficulty or effort|dis·sem·i·nate:spread or disperse information widely|dis·tort:give a misleading or false account or impression of|el·i·cit:evoke or draw out a response, answer, or fact from someone|e·lim·i·nate:completely remove or get rid of something|em·an·ate:originate from; be produced by|em·bod·y:be an expression of or give a tangible or visible form to an idea|em·pha·size:give special importance or value to something in speaking or writing|em·u·late:match or surpass a person or achievement, typically by imitation|en·com·pass:surround and have or hold within; include comprehensively|en·dorse:declare one's public approval or support of|en·hance:intensify, increase, or further improve the quality or value of|en·tail:involve something as a necessary or inevitable part or consequence|ex·ac·er·bate:make a problem, bad situation, or negative feeling worse" },
+      { id: "ks4_t8", title: "38. Education Policy & Development", pos: "n./adj.", raw: "ped·a·go·gy:the method and practice of teaching, especially as an academic subject|holis·tic:developing the whole student, including moral, intellectual, and physical aspects|rote learn·ing:memorization technique based on repetition rather than understanding|spoon-feed·ing:providing students with so much help that they do not think for themselves|in·quir·y-based:learning that starts by posing questions, problems, or scenarios|extracur·ric·u·lar:pursued in addition to the normal course of academic study|all-round:having a wide range of skills or abilities across different fields|voc·a·tion·al:relating to an occupation or employment; practical job training|ap·pren·tice·ship:a system of training a new generation of practitioners of a trade|ac·cred·i·ta·tion:the action or process of officially recognizing someone as having a status|stand·ard·ized:caused to conform to a uniform standard of testing|bench·mark:a standard or point of reference against which things may be compared|mer·i·toc·ra·cy:a social system in which advancement is based on individual ability or achievement|e·lit·ist:relating to or supporting the view that a society should be led by an elite|e·gal·i·tar·i·an:believing in or based on the principle that all people are equal|liter·a·cy:the ability to read and write, or competence in a specified area|nu·mer·a·cy:the ability to understand and work with numbers|biling·ual·ism:fluency in or use of two languages|triling·ual:able to speak and understand three languages fluently|mother-tongue:the language which a person has grown up speaking from early childhood|artic·u·late:having or showing the ability to speak fluently and coherently|pro·fi·cien·cy:a high degree of competence or skill; expertise|com·pe·ten·cy:an important skill that is needed to do a job|apti·tude:a natural ability to do something or learn a skill|poten·tial:latent qualities or abilities that may be developed and lead to future success|in·nate:inborn; natural rather than acquired|nur·ture:care for and encourage the growth or development of|for·ma·tive:serving to form something, especially having a profound influence on development|sum·ma·tive:evaluating student learning at the end of an instructional unit|plagia·rize:take the work or an idea of someone else and pass it off as one's own|auton·o·mous:acting independently and directing one's own learning|col·lab·o·ra·tive:produced or conducted by two or more parties working together|in·ter·dis·ci·pli·nar·y:relating to more than one branch of knowledge|lifelong:lasting or remaining in a particular state throughout a person's life|up·skill·ing:teaching employees or students additional new skills|adapt·a·ble:able to adjust to new conditions and changing environments|in·qui·si·tive:curious or inquiring; eager for knowledge|analytical:relating to or using analysis or logical reasoning|cre·a·tiv·i·ty:the use of the imagination or original ideas|per·se·ver·ance:persistence in doing something despite difficulty or delay in achieving success|grit:courage and resolve; strength of character|self-dis·ci·pline:the ability to control one's feelings and overcome one's weaknesses|pro·cras·ti·na·tion:the action of delaying or postponing something|time man·age·ment:the ability to use one's time effectively or productively|mentor·ship:the guidance provided by a mentor, especially an experienced person|peer pres·sure:influence from members of one's peer group|adoles·cence:the transitional period following the onset of puberty|ma·tur·i·ty:the state, fact, or period of being mature|trans·i·tion:the process or a period of changing from one state or condition to another|aspir·a·tion:a hope or ambition of achieving something" },
+      { id: "ks4_t9", title: "39. Media Literacy & Cultural Identity", pos: "n./adj.", raw: "homog·e·ni·za·tion:the process of making things uniform or similar across cultures|assim·i·la·tion:the process of taking in and fully understanding or absorbing into a culture|multicul·tur·al·ism:the presence of, or support for, several distinct cultural or ethnic groups|cosmopol·i·tan:including people from many different countries; sophisticated|indigenous:originating or occurring naturally in a particular place; native|vernac·u·lar:the language or dialect spoken by the ordinary people in a particular region|identi·ty:the characteristics determining who or what a person or group is|belong·ing:an affinity for a place or situation; acceptance as a member|alien·a·tion:the state or experience of being isolated from a group or activity|marginal·i·za·tion:treatment of a person, group, or concept as insignificant or peripheral|consum·er·ism:the preoccupation of society with the acquisition of consumer goods|material·ism:a tendency to consider material possessions and physical comfort as more important|sensa·tion·al·ism:the use of exciting or shocking stories at the expense of accuracy|prop·a·gan·da:information, especially of a biased or misleading nature, used to promote a cause|mis·in·for·ma·tion:false or inaccurate information, especially that which is deliberately intended to deceive|dis·in·for·ma·tion:false information which is intended to mislead public opinion|echo cham·ber:an environment in which a person encounters only beliefs that coincide with their own|po·lar·i·za·tion:division into two sharply contrasting groups or sets of opinions|click·bait:content whose main purpose is to attract attention and encourage visitors to click|pap·a·raz·zi:independent photographers who take pictures of high-profile people|def·a·ma·tion:the action of damaging the good reputation of someone; slander or libel|anon·y·mous:not identified by name; of unknown name|pseud·o·nym:a fictitious name, especially one used by an author or online user|vir·al:quickly and widely spread or popularized especially by means of social media|trend·ing:currently popular or widely discussed online|in·flu·en·cer:a person with the ability to influence potential buyers of a product on social media|endorse·ment:an act of giving one's public approval or support to someone or something|patron·age:the support given by a patron to arts or culture|curation:the selection, organization, and presentation of online content or museum items|aesthetic:a set of principles underlying and guiding the work of a particular artist|avant-garde:new and experimental ideas and methods in art, music, or literature|main·stream:the ideas, attitudes, or activities that are shared by most people|sub·cul·ture:a cultural group within a larger culture, often having different beliefs|nostal·gia:a sentimental longing or wistful affection for the past|reviv·al:an improvement in the condition, strength, or fortunes of a cultural tradition|preser·va·tion:the action of preserving something from decay or loss|erosion:the gradual destruction or diminution of cultural traditions|com·mod·i·fi·ca·tion:the action or process of treating something as a mere commodity for sale|authen·tic:of undisputed origin and not a copy; genuine|super·fi·cial:existing or occurring at or on the surface; lacking depth|ephem·er·al:lasting for a very short time|per·va·sive:spreading widely throughout an area or a group of people|u·biq·ui·tous:present, appearing, or found everywhere|indis·pen·sa·ble:absolutely necessary|intru·sive:causing disruption or annoyance through being unwelcome or uninvited|discern·ing:having or showing good judgement|gull·i·ble:easily persuaded to believe something; credulous|cyni·cal:believing that people are motivated purely by self-interest; distrustful|scep·ti·cal:not easily convinced; having doubts or reservations|en·light·ened:having or showing a rational, modern, and well-informed outlook" },
+      { id: "ks4_t10", title: "40. Advanced Modifiers (HKDSE Writing)", pos: "adj.", raw: "abun·dant:existing or available in large quantities; plentiful|ad·verse:preventing success or development; harmful; unfavourable|am·ple:enough or more than enough; plentiful|ar·du·ous:involving or requiring strenuous effort; difficult and tiring|au·spic·ious:conducive to success; favourable|be·nev·o·lent:well meaning and kindly|cat·e·gor·i·cal:unambiguous and explicit; absolute|co·her·ent:logical and consistent|com·pel·ling:evoking interest, attention, or admiration in a powerfully irresistible way|com·pre·hen·sive:complete and including everything that is necessary|con·du·cive:making a certain situation or outcome likely or possible|con·spic·u·ous:standing out so as to be clearly visible; attracting notice|con·tin·gent:subject to chance; occurring or existing only if certain circumstances are the case|cum·ber·some:large or heavy and therefore difficult to carry or use; slow and complicated|det·ri·men·tal:tending to cause harm|du·bi·ous:hesitating or doubting; not to be relied upon|ef·fi·ca·cious:successful in producing a desired or intended result; effective|e·lu·sive:difficult to find, catch, or achieve|em·in·ent:famous and respected within a particular sphere|equit·a·ble:fair and impartial|errat·ic:not even or regular in pattern or movement; unpredictable|ex·em·pla·ry:serving as a desirable model; very good|ex·haus·tive:including or considering all elements or aspects; fully comprehensive|ex·or·bi·tant:unreasonably high in price or amount|ex·pe·di·ent:convenient and practical although possibly improper or immoral|fick·le:changing frequently, especially as regards one's loyalties or affections|for·mi·da·ble:inspiring fear or respect through being impressively large or powerful|friv·o·lous:not having any serious purpose or value|fu·tile:incapable of producing any useful result; pointless|grat·u·i·tous:uncalled for; lacking good reason; unwarranted|haphaz·ard:lacking any obvious principle of organization|hein·ous:utterly odious or wicked|im·mi·nent:about to happen very soon|im·per·a·tive:of vital importance; crucial|im·plau·si·ble:not seeming reasonable or probable; failing to convince|in·ad·ver·tent:not resulting from or achieved through deliberate planning|in·cess·ant:continuing without pause or interruption|in·con·gru·ous:not in harmony or keeping with the surroundings or other aspects|in·del·i·ble:making marks that cannot be removed; unforgettable|in·dig·e·nous:originating or occurring naturally in a particular place|in·dis·crim·i·nate:done at random or without careful judgement|in·ex·o·ra·ble:impossible to stop or prevent|in·gen·i·ous:clever, original, and inventive|in·noc·u·ous:not harmful or offensive|in·sid·i·ous:proceeding in a gradual, subtle way, but with harmful effects|in·sur·mount·a·ble:too great to be overcome|in·tangi·ble:unable to be touched; not having physical presence|lu·cid:expressed clearly; easy to understand|met·ic·u·lous:showing great attention to detail; very careful and precise|prag·mat·ic:dealing with things sensibly and realistically in a practical way" }
+    ]
+  }
+};
+
+/* ============================================================================
+   2. 20 STEP-BY-STEP GRAMMAR & SENTENCE UNITS (KS1-KS4)
+   ============================================================================ */
+const GRAMMAR_DB = {
+  KS1: [
+    {
+      id: "g_ks1_1", title: "G01. 基础简单句：主语 + 动词 + 宾语 (SVO)",
+      formula: "[Subject 主语] + [Verb 动词] + [Object 宾语]",
+      guide: "英语简单句与普通话语序一致：先说「谁 (Subject)」，再说「做什么 (Verb)」，最后说「对象 (Object)」。注意主语用主格 (I, he, she, they)，宾语用宾格 (me, him, her, them)！",
+      contrast: "❌ 误区：Me like apples. / She helps I. → ✅ 正确：I like apples. / She helps me.",
+      examples: [
+        { s: "I", v: "eat", o: "breakfast", m: "every morning.", zh: "我每天早上吃早餐。" },
+        { s: "The teacher", v: "helps", o: "us", m: "in the classroom.", zh: "老师在教室里帮助我们。" }
+      ],
+      scramblers: [
+        { prompt: "我每天喝牛奶。", chunks: ["I", "drink", "milk", "every day."], ans: "I drink milk every day." },
+        { prompt: "孩子们喜欢他们的老师。", chunks: ["The children", "like", "their teacher."], ans: "The children like their teacher." }
+      ],
+      pitfalls: [
+        { wrong: "Him reads a book in the library.", options: ["He reads a book in the library.", "Him read a book in the library."], ans: 0, explain: "主语位置必须使用主格代词 He。" },
+        { wrong: "Our teacher gives we homework.", options: ["Our teacher gives our homework.", "Our teacher gives us homework."], ans: 1, explain: "动词 gives 后作宾语必须用宾格 us。" }
+      ],
+      quiz: [
+        { q: "1. 在 'The boy kicks the ball.' 中，哪个词是动词 (Verb)？", opts: ["The boy", "kicks", "the ball", "The"], a: 1 },
+        { q: "2. 填空：___ love my family, and my parents love ___.", opts: ["Me / I", "I / my", "I / me", "My / me"], a: 2 },
+        { q: "3. 哪一句符合英语 SVO 正确语序？", opts: ["We English speak.", "We speak English.", "Speak we English.", "English we speak."], a: 1 },
+        { q: "4. 填空：Mary is my classmate. I sit next to ___.", opts: ["she", "her", "hers", "he"], a: 1 },
+        { q: "5. 找出主语：'The brave fireman puts out fires.'", opts: ["The brave fireman", "puts out", "fires", "brave"], a: 0 }
+      ]
+    },
+    {
+      id: "g_ks1_2", title: "G02. Be 动词黄金法则 (am / is / are)",
+      formula: "[I → am] | [He/She/It/单数 → is] | [You/We/They/复数 → are]",
+      guide: "中文说「我很开心」没有「是」，但英语形容词 (happy, tall, hungry) 前面必须加上 Be 动词 (am / is / are)！",
+      contrast: "❌ 误区：I very hungry. / My sister tall. → ✅ 正确：I am very hungry. / My sister is tall.",
+      examples: [
+        { s: "I", v: "am", o: "a primary student", m: "in Hong Kong.", zh: "我是香港的一名小学生。" },
+        { s: "My father", v: "is", o: "very tired", m: "after work.", zh: "我爸爸下班后很累。" }
+      ],
+      scramblers: [
+        { prompt: "我今天非常开心。", chunks: ["I", "am", "very happy", "today."], ans: "I am very happy today." },
+        { prompt: "她的鞋子很干净。", chunks: ["Her shoes", "are", "clean."], ans: "Her shoes are clean." }
+      ],
+      pitfalls: [
+        { wrong: "The weather very hot today.", options: ["The weather are very hot today.", "The weather is very hot today."], ans: 1, explain: "形容词 hot 前必须有 Be 动词，weather 为不可数单数，用 is。" },
+        { wrong: "My parents is doctors.", options: ["My parents are doctors.", "My parents am doctors."], ans: 0, explain: "My parents 是复数主语，用 are。" }
+      ],
+      quiz: [
+        { q: "1. 填空：I ___ thirsty, and my brother ___ hungry.", opts: ["is / am", "am / is", "are / is", "am / are"], a: 1 },
+        { q: "2. 填空：These bananas ___ sweet and yellow.", opts: ["am", "is", "are", "be"], a: 2 },
+        { q: "3. 哪一句完全正确？", opts: ["She polite.", "She is polite.", "She are polite.", "She am polite."], a: 1 },
+        { q: "4. 'He is a postman.' 的一般疑问句是？", opts: ["Does he a postman?", "Is he a postman?", "Are he a postman?", "He is a postman?"], a: 1 },
+        { q: "5. 填空：The baby and the puppy ___ asleep.", opts: ["is", "am", "are", "be"], a: 2 }
+      ]
+    },
+    {
+      id: "g_ks1_3", title: "G03. 一般现在时与第三人称单数 (-s / -es)",
+      formula: "[I/You/We/They + 原形] vs. [He/She/It/单数 + 动词-s/-es]",
+      guide: "在一般现在时（日常习惯或事实）中，只要主语是第三人称单数 (He / She / It / 单数名词)，动词词尾必须加 -s 或 -es！助动词 does/doesn't 出现后，动词还原为原形。",
+      contrast: "❌ 误区：My mother cook dinner. → ✅ 正确：My mother cooks dinner.",
+      examples: [
+        { s: "My father", v: "reads", o: "the newspaper", m: "every morning.", zh: "爸爸每天早上看报纸。" },
+        { s: "Tom", v: "does not like", o: "spicy food", m: "at all.", zh: "汤姆完全不喜欢辣的食物。" }
+      ],
+      scramblers: [
+        { prompt: "邮递员每天早上送信。", chunks: ["The postman", "brings", "letters", "every morning."], ans: "The postman brings letters every morning." },
+        { prompt: "他每天早上刷牙吗？", chunks: ["Does", "he", "brush", "his teeth", "every morning?"], ans: "Does he brush his teeth every morning?" }
+      ],
+      pitfalls: [
+        { wrong: "My brother go to school by bus.", options: ["My brother goes to school by bus.", "My brother gos to school by bus."], ans: 0, explain: "go 以 o 结尾，三单加 -es 变成 goes。" },
+        { wrong: "She does not likes carrots.", options: ["She does not like carrots.", "She do not like carrots."], ans: 0, explain: "助动词 does 后实义动词恢复原形 like。" }
+      ],
+      quiz: [
+        { q: "1. 填空：The nurse ___ sick people.", opts: ["help", "helps", "helping", "to help"], a: 1 },
+        { q: "2. 'study' 在 He 后怎么拼写？", opts: ["studys", "studies", "studyies", "studyes"], a: 1 },
+        { q: "3. 填空：I ___ a red ruler, and she ___ a blue ruler.", opts: ["have / have", "has / have", "have / has", "has / has"], a: 2 },
+        { q: "4. 填空：___ your father work in Central?", opts: ["Do", "Does", "Is", "Are"], a: 1 },
+        { q: "5. 哪一句完全正确？", opts: ["The bird fly in the sky.", "The bird flies in the sky.", "The birds flies in the sky.", "The bird flying."], a: 1 }
+      ]
+    },
+    {
+      id: "g_ks1_4", title: "G04. 冠词 (a/an/the) 与名词单复数",
+      formula: "[辅音音素 → a] | [元音音素 a/e/i/o/u → an] | [唯一/特指 → the] | [复数 -s/不规则]",
+      guide: "单数可数名词前必须有限定词 (a/an/the/my)；超过一个必须变复数！熟记不规则复数：child→children, tooth→teeth, foot→feet, mouse→mice, sheep→sheep。",
+      contrast: "❌ 误区：I eat apple. / Two child. → ✅ 正确：I eat an apple. / Two children.",
+      examples: [
+        { s: "She", v: "carries", o: "an umbrella and a bag", m: "on rainy days.", zh: "下雨天她带一把伞和一个包。" },
+        { s: "Brush", v: "your", o: "teeth", m: "twice a day.", zh: "每天刷两次牙。" }
+      ],
+      scramblers: [
+        { prompt: "我早餐吃一个鸡蛋和一个橙子。", chunks: ["I", "eat", "an egg", "and an orange", "for breakfast."], ans: "I eat an egg and an orange for breakfast." },
+        { prompt: "有三个孩子在图书馆里。", chunks: ["Three children", "are", "in the library."], ans: "Three children are in the library." }
+      ],
+      pitfalls: [
+        { wrong: "My uncle is a honest policeman.", options: ["My uncle is an honest policeman.", "My uncle is honest policeman."], ans: 0, explain: "honest 的 h 不发音，元音开头用 an。" },
+        { wrong: "There are many sheeps on the grass.", options: ["There are many sheep on the grass.", "There is many sheep on the grass."], ans: 0, explain: "sheep 单复数同形，不加 s。" }
+      ],
+      quiz: [
+        { q: "1. 填空：___ elephant has ___ long nose.", opts: ["A / a", "An / a", "An / an", "The / an"], a: 1 },
+        { q: "2. 哪组复数变化是错误的？", opts: ["tooth → teeth", "child → children", "foot → foots", "box → boxes"], a: 2 },
+        { q: "3. 填空：Look at ___ blackboard, please.", opts: ["a", "an", "the", "/"], a: 2 },
+        { q: "4. 填空：Mum cut two ___ and three ___.", opts: ["tomato / potato", "tomatoes / potatoes", "tomatos / potatos", "tomatoes / potato"], a: 1 },
+        { q: "5. 填空：___ shoes are too small.", opts: ["This", "That", "These", "An"], a: 2 }
+      ]
+    },
+    {
+      id: "g_ks1_5", title: "G05. 地点与时间状语位置 (SVO + Place + Time)",
+      formula: "[Subject 谁] + [Verb 做什么] + [Object 什么] + [Place 地点] + [Time 时间]",
+      guide: "普通话习惯先说时间地点（「我每天在公园跑步」），而英语必须先说完核心动作 SVO，再放【地点】，最后放【时间】！",
+      contrast: "❌ 误区：I every morning in the park run. → ✅ 正确：I run in the park every morning.",
+      examples: [
+        { s: "We", v: "read", o: "storybooks", m: "in the library every afternoon.", zh: "我们每天下午在图书馆看故事书。" },
+        { s: "My father", v: "takes", o: "the MTR", m: "to Central at eight o'clock.", zh: "爸爸八点乘港铁去中环。" }
+      ],
+      scramblers: [
+        { prompt: "妈妈每晚在厨房煮晚餐。", chunks: ["My mother", "cooks dinner", "in the kitchen", "every night."], ans: "My mother cooks dinner in the kitchen every night." },
+        { prompt: "爷爷每天早上在公园散步。", chunks: ["Grandpa", "walks", "in the park", "every morning."], ans: "Grandpa walks in the park every morning." }
+      ],
+      pitfalls: [
+        { wrong: "I yesterday at the supermarket bought apples.", options: ["I bought apples at the supermarket yesterday.", "I bought apples yesterday at the supermarket."], ans: 0, explain: "标准语序：SVO + 地点 (at the supermarket) + 时间 (yesterday)。" },
+        { wrong: "She at seven o'clock wakes up in her room.", options: ["She wakes up in her room at seven o'clock.", "She in her room wakes up at seven o'clock."], ans: 0, explain: "先说动作 wakes up，再说地点 in her room，最后说时间。" }
+      ],
+      quiz: [
+        { q: "1. 「我每天在学校吃午餐」地道语序是：", opts: ["I every day at school eat lunch.", "I at school eat lunch every day.", "I eat lunch at school every day.", "I eat lunch every day at school."], a: 2 },
+        { q: "2. 同时出现地点 (in the hall) 和时间 (this morning) 怎么排？", opts: ["this morning in the hall", "in the hall this morning", "放在主语后", "随便排"], a: 1 },
+        { q: "3. 填空：School starts ___ eight o'clock ___ Monday.", opts: ["in / on", "at / on", "at / in", "on / at"], a: 1 },
+        { q: "4. 哪句语序最自然？", opts: ["The boys football play in the park now.", "The boys play football in the park now.", "The boys in the park play football now.", "Now the boys football play."], a: 1 },
+        { q: "5. 填空：We swim ___ summer, and my birthday is ___ July.", opts: ["on / on", "at / in", "in / in", "in / on"], a: 2 }
+      ]
+    }
+  ],
+  KS2: [
+    {
+      id: "g_ks2_1", title: "G06. 现在进行时 vs. 一般现在时",
+      formula: "[Now/Look/Listen → am/is/are + V-ing] vs. [Usually/Every day → V/V-s]",
+      guide: "看到 Look! / Listen! / now / at the moment 用【am/is/are + V-ing】；看到 every day / usually / always 用一般现在时。心理状态动词 (know, like, want) 不用进行时！",
+      contrast: "❌ 误区：Look! The bus coming! → ✅ 正确：Look! The bus is coming!",
+      examples: [
+        { s: "Listen! The choir", v: "is singing", o: "a song", m: "in the hall right now.", zh: "听！合唱团正在礼堂唱歌。" },
+        { s: "My sister usually", v: "does", o: "her homework", m: "at five o'clock.", zh: "妹妹通常五点做家课。" }
+      ],
+      scramblers: [
+        { prompt: "看！消防员正在扑灭大火。", chunks: ["Look!", "The fireman", "is putting out", "the fire."], ans: "Look! The fireman is putting out the fire." },
+        { prompt: "你现在正在查字典吗？", chunks: ["Are", "you", "using", "the dictionary", "right now?"], ans: "Are you using the dictionary right now?" }
+      ],
+      pitfalls: [
+        { wrong: "Be quiet! The baby sleeping.", options: ["Be quiet! The baby is sleeping.", "Be quiet! The baby sleeps."], ans: 0, explain: "现在进行时不能漏掉 Be 动词 is。" },
+        { wrong: "I am knowing the answer now.", options: ["I know the answer now.", "I knowing the answer now."], ans: 0, explain: "know 是状态动词，不用进行时。" }
+      ],
+      quiz: [
+        { q: "1. 填空：Look! The passengers ___ onto the ferry now.", opts: ["walk", "walks", "is walking", "are walking"], a: 3 },
+        { q: "2. 填空：Dad usually ___ the MTR, but today he ___ a taxi.", opts: ["takes / is taking", "is taking / takes", "take / taking", "takes / takes"], a: 0 },
+        { q: "3. 哪个 -ing 拼写是错误的？", opts: ["write → writing", "run → running", "swim → swiming", "study → studying"], a: 2 },
+        { q: "4. 填空：Listen! Someone ___ at the door.", opts: ["knock", "knocks", "is knocking", "are knocking"], a: 2 },
+        { q: "5. 哪句正确？", opts: ["She is wanting water.", "She wants water.", "She want water.", "She is want water."], a: 1 }
+      ]
+    },
+    {
+      id: "g_ks2_2", title: "G07. 一般过去时与不规则动词 (Simple Past)",
+      formula: "[肯定：V-ed / 不规则过去式] | [否定/疑问：did not / Did + 动词原形]",
+      guide: "过去时间 (yesterday, last week, ago) 动词必须变过去式！熟记 go→went, buy→bought, see→saw, eat→ate, take→took。一旦有 did/didn't，动词立刻还原为原形！",
+      contrast: "❌ 误区：I did not went there. → ✅ 正确：I did not go there.",
+      examples: [
+        { s: "Our class", v: "visited", o: "the Science Museum", m: "last Friday.", zh: "我们班上周五参观了科学馆。" },
+        { s: "He", v: "did not finish", o: "his project", m: "last night.", zh: "他昨晚没完成专题研习。" }
+      ],
+      scramblers: [
+        { prompt: "我们昨晚在海港旁看烟花。", chunks: ["We", "watched", "the fireworks", "by the harbour last night."], ans: "We watched the fireworks by the harbour last night." },
+        { prompt: "你上周末去哪里了？", chunks: ["Where", "did", "you", "go", "last weekend?"], ans: "Where did you go last weekend?" }
+      ],
+      pitfalls: [
+        { wrong: "Did you saw the dolphin yesterday?", options: ["Did you see the dolphin yesterday?", "Were you see the dolphin yesterday?"], ans: 0, explain: "助动词 Did 后必须用原形 see。" },
+        { wrong: "We was excited last Monday.", options: ["We were excited last Monday.", "We did excited last Monday."], ans: 0, explain: "复数主语 We 的过去式 Be 动词是 were。" }
+      ],
+      quiz: [
+        { q: "1. 哪组过去式不正确？", opts: ["go → went", "buy → bought", "catch → catched", "take → took"], a: 2 },
+        { q: "2. 填空：She ___ her knee when she ___ down.", opts: ["hurts / fell", "hurt / fell", "hurted / falled", "hurt / fall"], a: 1 },
+        { q: "3. 填空：Why ___ you late this morning?", opts: ["did", "was", "were", "are"], a: 2 },
+        { q: "4. 填空：They didn't ___ any photos.", opts: ["took", "taking", "take", "takes"], a: 2 },
+        { q: "5. 填空：Grandpa ___ me a story last night.", opts: ["tell", "tells", "told", "telling"], a: 2 }
+      ]
+    },
+    {
+      id: "g_ks2_3", title: "G08. 将来时态 (will vs. be going to)",
+      formula: "[will + 动词原形 (预测/承诺/临时决定)] vs. [am/is/are going to + 原形 (计划/迹象)]",
+      guide: "will + 原形（缩写否定 won't）用于预测或承诺；am/is/are going to + 原形用于事先计划或看到明显迹象（如乌云密布 is going to rain）。两者不可混用！",
+      contrast: "❌ 误区：I will going to visit grandma. → ✅ 正确：I am going to visit grandma.",
+      examples: [
+        { s: "We", v: "are going to visit", o: "our relatives", m: "at Chinese New Year.", zh: "我们计划在农历新年拜访亲戚。" },
+        { s: "Look at those black clouds! It", v: "is going to rain", o: "very soon.", m: "", zh: "看那些乌云！快要下雨了。" }
+      ],
+      scramblers: [
+        { prompt: "我承诺今晚会完成所有家课。", chunks: ["I", "will finish", "all my homework", "tonight."], ans: "I will finish all my homework tonight." },
+        { prompt: "明天天气会寒冷且多风吗？", chunks: ["Will", "the weather", "be", "cold and windy", "tomorrow?"], ans: "Will the weather be cold and windy tomorrow?" }
+      ],
+      pitfalls: [
+        { wrong: "My brother going to join the race.", options: ["My brother is going to join the race.", "My brother will going to join the race."], ans: 0, explain: "be going to 结构不能漏掉 Be 动词 is。" },
+        { wrong: "It will sunny tomorrow.", options: ["It will be sunny tomorrow.", "It will is sunny tomorrow."], ans: 0, explain: "will 后必须接动词原形 be。" }
+      ],
+      quiz: [
+        { q: "1. 填空：Look at the dark sky! It ___ soon.", opts: ["rains", "rained", "is going to rain", "going to rain"], a: 2 },
+        { q: "2. 填空：Don't worry, I ___ lend you my pen.", opts: ["am", "will", "going to", "did"], a: 1 },
+        { q: "3. 'will not' 的缩写是？", opts: ["willn't", "won't", "don't", "shan't"], a: 1 },
+        { q: "4. 填空：What ___ you ___ do next Sunday?", opts: ["will / going to", "are / going to", "do / going to", "is / going to"], a: 1 },
+        { q: "5. 填空：I hope our team ___ tomorrow.", opts: ["win", "won", "will win", "winning"], a: 2 }
+      ]
+    },
+    {
+      id: "g_ks2_4", title: "G09. 比较级与最高级 (Comparatives & Superlatives)",
+      formula: "[两者：-er / more ... + than] | [三者或以上：the + -est / the most ...]",
+      guide: "短词加 -er / -est；3个音节或以上长词（如 beau·ti·ful, ex·pen·sive）前加 more / the most。不规则：good → better → the best；bad → worse → the worst。",
+      contrast: "❌ 误区：more heavier / most fastest → ✅ 正确：heavier / the fastest",
+      examples: [
+        { s: "The MTR", v: "is", o: "faster and more convenient than", m: "the tram.", zh: "港铁比电车更快更方便。" },
+        { s: "The elephant", v: "is", o: "the biggest land animal", m: "in the zoo.", zh: "大象是动物园里最大的陆地动物。" }
+      ],
+      scramblers: [
+        { prompt: "夏天比秋天更热、更潮湿。", chunks: ["Summer", "is", "hotter and wetter", "than autumn."], ans: "Summer is hotter and wetter than autumn." },
+        { prompt: "这是店里最昂贵的手表。", chunks: ["This is", "the most expensive", "watch", "in the shop."], ans: "This is the most expensive watch in the shop." }
+      ],
+      pitfalls: [
+        { wrong: "My bag is more heavier than yours.", options: ["My bag is heavier than yours.", "My bag is heavyer than yours."], ans: 0, explain: "heavy 变 heavier，不可重复加 more。" },
+        { wrong: "Mount Everest is highest mountain.", options: ["Mount Everest is the highest mountain.", "Mount Everest is higher mountain."], ans: 0, explain: "最高级前必须加 the。" }
+      ],
+      quiz: [
+        { q: "1. 'dil·i·gent' (3个音节) 的比较级是？", opts: ["diligenter", "more diligent", "most diligent", "more diligenter"], a: 1 },
+        { q: "2. 填空：Health is ___ than money.", opts: ["important", "more important", "the most important", "importanter"], a: 1 },
+        { q: "3. 填空：Yesterday was ___ day of the year.", opts: ["bad", "worse", "the worst", "the baddest"], a: 2 },
+        { q: "4. 填空：Of all three runners, John ran ___.", opts: ["fast", "faster", "the fastest", "more fast"], a: 2 },
+        { q: "5. 填空：A bicycle is ___ than a motorbike.", opts: ["safe", "safer", "more safe", "the safest"], a: 1 }
+      ]
+    },
+    {
+      id: "g_ks2_5", title: "G10. 复合句连接词与双连词禁忌 (Conjunctions)",
+      formula: "[Although + 从句, 主句 (绝不加 but!)] | [Because + 从句, 主句 (绝不加 so!)]",
+      guide: "中文习惯说「虽然…但是…」、「因为…所以…」，但英语一个复合句只能用一个连词：有 Although 绝不加 but；有 Because 绝不加 so！",
+      contrast: "❌ 误区：Although it rained, but we went out. → ✅ 正确：Although it rained, we went out.",
+      examples: [
+        { s: "Although the hike was tiring,", v: "everyone", o: "enjoyed", m: "the view.", zh: "虽然远足很累，但大家都很享受风景。" },
+        { s: "He saw the dentist", v: "because", o: "he had", m: "a toothache.", zh: "他去看牙医，因为他牙痛。" }
+      ],
+      scramblers: [
+        { prompt: "虽然他年纪小，但他能照顾自己。", chunks: ["Although he is young,", "he can look after", "himself."], ans: "Although he is young, he can look after himself." },
+        { prompt: "除非你现在努力温习，否则你不会及格。", chunks: ["Unless you revise hard now,", "you will not pass", "the examination."], ans: "Unless you revise hard now, you will not pass the examination." }
+      ],
+      pitfalls: [
+        { wrong: "Because she was sick, so she stayed in bed.", options: ["Because she was sick, she stayed in bed.", "Because she was sick, and she stayed in bed."], ans: 0, explain: "because 与 so 不能同时使用。" },
+        { wrong: "Although the watch was dear, but Dad bought it.", options: ["Although the watch was dear, Dad bought it.", "Though the watch was dear, but Dad bought it."], ans: 0, explain: "although 与 but 不能同时使用。" }
+      ],
+      quiz: [
+        { q: "1. 填空：___ he practised hard, he won the medal.", opts: ["Although", "Because", "Unless", "While"], a: 1 },
+        { q: "2. 填空：Although the test was hard, ___ nobody gave up.", opts: ["but", "so", "(不填)", "and"], a: 2 },
+        { q: "3. 填空：We were having dinner ___ the lights went out.", opts: ["when", "because", "unless", "so"], a: 0 },
+        { q: "4. 填空：You cannot borrow books ___ you bring your card.", opts: ["because", "although", "unless", "so"], a: 2 },
+        { q: "5. 哪一句完全符合英语规范？", opts: ["Because it was cold, so I wore a coat.", "Although he is rich, but he is humble.", "Although he is rich, he stays humble.", "Unless you hurry, or you will be late."], a: 2 }
+      ]
+    }
+  ],
+  KS3: [
+    {
+      id: "g_ks3_1", title: "G11. Present Perfect Tense (have/has + p.p.)",
+      formula: "[have / has + Past Participle] + [since (time point) / for (duration) / already / yet]",
+      guide: "Connects past actions to the present. (提示：since + 过去时间点；for + 时间段；一旦有明确过去时间如 yesterday / two years ago，必须用 Simple Past！)",
+      contrast: "❌ Error: I have bought it last year. → ✅ Correct: I bought it last year.",
+      examples: [
+        { s: "Our school", v: "has organized", o: "three walkathons", m: "since 2023.", zh: "自2023年以来我校已举办三次步行筹款。" },
+        { s: "The volunteers", v: "have already distributed", o: "warm meals", m: "to the elderly.", zh: "义工们已经向长者派发了热餐。" }
+      ],
+      scramblers: [
+        { prompt: "She has lived in Kowloon for ten years.", chunks: ["She", "has lived", "in Kowloon", "for ten years."], ans: "She has lived in Kowloon for ten years." },
+        { prompt: "We have not received the results yet.", chunks: ["We", "have not received", "the results", "yet."], ans: "We have not received the results yet." }
+      ],
+      pitfalls: [
+        { wrong: "Mr Chan has taught here since five years.", options: ["Mr Chan has taught here for five years.", "Mr Chan taught here since five years."], ans: 0, explain: "'five years' 是时间段，必须用 for。" },
+        { wrong: "I have watched that film yesterday.", options: ["I watched that film yesterday.", "I has watched that film yesterday."], ans: 0, explain: "有 yesterday 必须用一般过去时 watched。" }
+      ],
+      quiz: [
+        { q: "1. My sister ___ a volunteer since last summer.", opts: ["was", "is", "has been", "have been"], a: 2 },
+        { q: "2. They have known each other ___ ten years.", opts: ["since", "for", "during", "from"], a: 1 },
+        { q: "3. Which sentence is CORRECT?", opts: ["He has arrived ten minutes ago.", "He arrived ten minutes ago.", "He have arrived ago.", "He has arrive just now."], a: 1 },
+        { q: "4. Where is Tom? He ___ to the library and isn't back yet.", opts: ["has been", "has gone", "went", "goes"], a: 1 },
+        { q: "5. ___ you ever ___ in a marathon?", opts: ["Did / participated", "Have / participate", "Have / participated", "Has / participated"], a: 2 }
+      ]
+    },
+    {
+      id: "g_ks3_2", title: "G12. Passive Voice Across Tenses (be + p.p.)",
+      formula: "[Present: am/is/are + p.p.] | [Past: was/were + p.p.] | [Modal: must/will be + p.p.]",
+      guide: "Used when the receiver of the action is the subject. (提示：凡是主语承受动作，必须用 be + 过去分词 p.p.！)",
+      contrast: "❌ Error: The concert broadcast last night. → ✅ Correct: The concert was broadcast last night.",
+      examples: [
+        { s: "Plastic bottles", v: "are recycled", o: "by the factory", m: "every week.", zh: "塑料瓶每周被工厂回收。" },
+        { s: "All devices", v: "must be switched off", o: "before the exam.", m: "", zh: "考试前必须关闭所有电子设备。" }
+      ],
+      scramblers: [
+        { prompt: "Clean electricity is generated by wind turbines.", chunks: ["Clean electricity", "is generated", "by wind turbines."], ans: "Clean electricity is generated by wind turbines." },
+        { prompt: "The winners will be announced tomorrow.", chunks: ["The winners", "will be announced", "tomorrow."], ans: "The winners will be announced tomorrow." }
+      ],
+      pitfalls: [
+        { wrong: "The experiment conducted yesterday.", options: ["The experiment was conducted yesterday.", "The experiment is conducted yesterday."], ans: 0, explain: "实验是被进行的，过去时间用 was conducted。" },
+        { wrong: "Seatbelts must fasten by passengers.", options: ["Seatbelts must be fastened by passengers.", "Seatbelts must fastened by passengers."], ans: 0, explain: "情态动词被动式：must be + p.p.。" }
+      ],
+      quiz: [
+        { q: "1. Passive of 'They built a new arena':", opts: ["A new arena built.", "A new arena is built.", "A new arena was built.", "A new arena were built."], a: 2 },
+        { q: "2. English ___ widely ___ in Hong Kong.", opts: ["is / spoken", "are / spoke", "is / spoke", "has / spoken"], a: 0 },
+        { q: "3. The injured hiker ___ to hospital just now.", opts: ["took", "was taken", "is taken", "has took"], a: 1 },
+        { q: "4. Applications must ___ before Friday.", opts: ["submit", "submitted", "be submitted", "be submitting"], a: 2 },
+        { q: "5. Which verb CANNOT be passive?", opts: ["destroy", "publish", "happen", "invent"], a: 2 }
+      ]
+    },
+    {
+      id: "g_ks3_3", title: "G13. Relative Clauses (who, which, whose, where)",
+      formula: "[Noun] + [who (person) / which (thing) / whose (possession) / where (place)] + [Clause]",
+      guide: "Placed immediately after the noun it modifies. Never repeat the object pronoun (e.g. 'it') inside the relative clause!",
+      contrast: "❌ Error: The book which I borrowed it is good. → ✅ Correct: The book which I borrowed is good.",
+      examples: [
+        { s: "Volunteers", v: "who help the elderly", o: "deserve", m: "our respect.", zh: "帮助长者的义工值得我们尊重。" },
+        { s: "That is the author", v: "whose novel", o: "won", m: "the first prize.", zh: "那就是小说赢得一等奖的作家。" }
+      ],
+      scramblers: [
+        { prompt: "The athlete who won the marathon trained hard.", chunks: ["The athlete", "who won the marathon", "trained hard."], ans: "The athlete who won the marathon trained hard." },
+        { prompt: "This is the lab where scientists conduct experiments.", chunks: ["This is the lab", "where scientists", "conduct experiments."], ans: "This is the lab where scientists conduct experiments." }
+      ],
+      pitfalls: [
+        { wrong: "The laptop which I bought it last week is fast.", options: ["The laptop which I bought last week is fast.", "The laptop who I bought last week is fast."], ans: 0, explain: "which 已经指代 laptop，不能再重复写 it。" },
+        { wrong: "The victim who's wallet was stolen called the police.", options: ["The victim whose wallet was stolen called the police.", "The victim which wallet was stolen called the police."], ans: 0, explain: "表所属关系「谁的」用 whose。" }
+      ],
+      quiz: [
+        { q: "1. Cyberbullying is an issue ___ affects teenagers.", opts: ["who", "whom", "which", "where"], a: 2 },
+        { q: "2. The applicant ___ we interviewed has rich experience.", opts: ["which", "whom / who", "whose", "where"], a: 1 },
+        { q: "3. The family ___ house was flooded moved to a shelter.", opts: ["who", "which", "whose", "where"], a: 2 },
+        { q: "4. Tai O is a village ___ tourists see stilt houses.", opts: ["which", "who", "where", "whom"], a: 2 },
+        { q: "5. The museum, ___ was built in 1990, is famous.", opts: ["that", "which", "who", "where"], a: 1 }
+      ]
+    },
+    {
+      id: "g_ks3_4", title: "G14. Conditionals Types 1 & 2 (真实与虚拟条件句)",
+      formula: "[Type 1: If + Present, will + V] | [Type 2 (Unreal Present): If + Past (were), would + V]",
+      guide: "Type 1 = real future possibility (主将从现: never use 'will' in the If-clause). Type 2 = imaginary present situation (use Past Simple in If-clause, 'were' for all subjects).",
+      contrast: "❌ Error: If it will rain, we will stay home. → ✅ Correct: If it rains, we will stay home.",
+      examples: [
+        { s: "If we reduce emissions,", v: "we will slow down", o: "global warming.", m: "", zh: "如果我们减少排放，就能减缓全球暖化。" },
+        { s: "If I were you,", v: "I would apologize", o: "immediately.", m: "", zh: "如果我是你，我会立即道歉。" }
+      ],
+      scramblers: [
+        { prompt: "If I had more time, I would learn an instrument.", chunks: ["If I had", "more time,", "I would learn", "an instrument."], ans: "If I had more time, I would learn an instrument." },
+        { prompt: "What would you do if there were no electricity?", chunks: ["What would you do", "if there were", "no electricity?"], ans: "What would you do if there were no electricity?" }
+      ],
+      pitfalls: [
+        { wrong: "If the signal will be hoisted, school will close.", options: ["If the signal is hoisted, school will close.", "If the signal hoisted, school will close."], ans: 0, explain: "Type 1 的 If 从句用一般现在时表将来。" },
+        { wrong: "If I have wings, I would fly.", options: ["If I had wings, I would fly.", "If I have wings, I will fly."], ans: 0, explain: "与现在事实相反的虚拟语气用过去式 had。" }
+      ],
+      quiz: [
+        { q: "1. Type 1: If you ___ your budget, you will save money.", opts: ["will plan", "planned", "plan", "would plan"], a: 2 },
+        { q: "2. Type 2: If I ___ the lottery, I would donate to charity.", opts: ["win", "will win", "won", "have won"], a: 2 },
+        { q: "3. Type 2: If she ___ taller, she would join the team.", opts: ["is", "am", "were", "will be"], a: 2 },
+        { q: "4. Which is CORRECT?", opts: ["Unless we protect reefs, they will die.", "Unless we will protect reefs, they will die.", "If we don't protect reefs, they would died.", "If we protected reefs, they will survive."], a: 0 },
+        { q: "5. If there were zero gravity, everything ___ into space.", opts: ["floats", "will float", "would float", "floated"], a: 2 }
+      ]
+    },
+    {
+      id: "g_ks3_5", title: "G15. Reported Speech & Indirect Questions",
+      formula: "[said/told/asked] + [Tense Backshift] + [Statement Word Order (Subject + Verb)]",
+      guide: "Shift tense back (am→was, will→would, have→had) and keep statement word order in indirect questions (where he was, NOT where was he).",
+      contrast: "❌ Error: She asked me where was the station. → ✅ Correct: She asked me where the station was.",
+      examples: [
+        { s: "The reporter said that", v: "the exhibition would open", o: "the following week.", m: "", zh: "记者说展览将于下周开幕。" },
+        { s: "He asked me", v: "whether I had watched", o: "the documentary.", m: "", zh: "他问我是否看过那部纪录片。" }
+      ],
+      scramblers: [
+        { prompt: "The doctor advised the patient to take more rest.", chunks: ["The doctor", "advised the patient", "to take", "more rest."], ans: "The doctor advised the patient to take more rest." },
+        { prompt: "Can you tell me what time the flight departs?", chunks: ["Can you tell me", "what time", "the flight departs?"], ans: "Can you tell me what time the flight departs?" }
+      ],
+      pitfalls: [
+        { wrong: "He asked where could he exchange money.", options: ["He asked where he could exchange money.", "He asked where can he exchange money."], ans: 0, explain: "间接疑问句必须恢复陈述语序 (where he could)。" },
+        { wrong: "Mary said me that she was busy.", options: ["Mary told me that she was busy.", "Mary told to me that she was busy."], ans: 0, explain: "told 直接跟人 (told me)；said 需加 to。" }
+      ],
+      quiz: [
+        { q: "1. 'I will volunteer tomorrow,' said Tom. →", opts: ["Tom said he will volunteer tomorrow.", "Tom said he would volunteer the following day.", "Tom told he would volunteer.", "Tom said he volunteered."], a: 1 },
+        { q: "2. 'Have you finished?' Miss Wong asked us. →", opts: ["Miss Wong asked had we finished.", "Miss Wong asked if we have finished.", "Miss Wong asked whether we had finished.", "Miss Wong asked that we finished."], a: 2 },
+        { q: "3. 'Do not share passwords,' the teacher warned. →", opts: ["The teacher warned us do not share passwords.", "The teacher warned us not to share passwords.", "The teacher warned us to not sharing.", "The teacher warned that not share."], a: 1 },
+        { q: "4. In Reported Speech, 'yesterday' becomes:", opts: ["the following day", "that day", "the day before", "now"], a: 2 },
+        { q: "5. Can you tell me where ___?", opts: ["does the library locate", "the library is", "is the library", "did the library"], a: 1 }
+      ]
+    }
+  ],
+  KS4: [
+    {
+      id: "g_ks4_1", title: "G16. Participle Clauses (-ing & -ed Clauses)",
+      formula: "[V-ing (Active) / V-ed (Passive) Phrase], [Main Clause Subject MUST Match!]",
+      guide: "Participle clauses condense complex clauses in HKDSE essays. Ensure the logical subject of the participle is identical to the subject of the main clause to avoid dangling participles.",
+      contrast: "❌ Dangling: Walking down the street, the building caught my eye. → ✅ Walking down the street, I noticed the building.",
+      examples: [
+        { s: "Faced with an ageing demographic,", v: "the government must allocate", o: "more resources", m: "to healthcare.", zh: "Passive participle clause showing cause." },
+        { s: "Recognizing the severity of pollution,", v: "many retailers have banned", o: "plastic bags.", m: "", zh: "Active participle clause showing reason." }
+      ],
+      scramblers: [
+        { prompt: "Equipped with advanced algorithms, AI can analyze medical data rapidly.", chunks: ["Equipped with", "advanced algorithms,", "AI can analyze", "medical data rapidly."], ans: "Equipped with advanced algorithms, AI can analyze medical data rapidly." },
+        { prompt: "Subsidized by public funds, the museum offers free admission.", chunks: ["Subsidized by", "public funds,", "the museum", "offers free admission."], ans: "Subsidized by public funds, the museum offers free admission." }
+      ],
+      pitfalls: [
+        { wrong: "Exhausted from overwork, the project was abandoned by the engineer.", options: ["Exhausted from overwork, the engineer abandoned the project.", "Exhausting from overwork, the engineer abandoned the project."], ans: 0, explain: "The main clause subject must be 'the engineer' who was exhausted." },
+        { wrong: "Establish in 1911, the university has a long history.", options: ["Established in 1911, the university has a long history.", "Establishing in 1911, the university has a long history."], ans: 0, explain: "Passive meaning requires past participle 'Established'." }
+      ],
+      quiz: [
+        { q: "1. ___ by lucrative profits, many entrepreneurs entered the market.", opts: ["Attract", "Attracting", "Attracted", "Having attracting"], a: 2 },
+        { q: "2. ___ a sedentary lifestyle, he became susceptible to illness.", opts: ["Led", "Leading", "Be led", "Leads"], a: 1 },
+        { q: "3. Which avoids a dangling participle?", opts: ["Reading the article, biases were found.", "Reading the article, the student identified biases.", "To read the article, biases were found.", "Having read, biases were obvious."], a: 1 },
+        { q: "4. The law was enacted, ___ a strong deterrent.", opts: ["create", "created", "creating", "to creating"], a: 2 },
+        { q: "5. ___ all evidence, the tribunal delivered a verdict.", opts: ["Weighed", "Having weighed", "Being weighed", "Weigh"], a: 1 }
+      ]
+    },
+    {
+      id: "g_ks4_2", title: "G17. Negative Inversion for Emphasis",
+      formula: "[Not only / Seldom / Never / Only by...] + [Auxiliary (do/does/did/have/can/should)] + [Subject] + [Verb]",
+      guide: "Opening a sentence with a negative or limiting adverbial requires subject-auxiliary inversion (like question word order) for rhetorical impact.",
+      contrast: "❌ Error: Not only technology improves efficiency... → ✅ Correct: Not only does technology improve efficiency...",
+      examples: [
+        { s: "Not only does exercise strengthen immunity,", v: "but it also alleviates", o: "anxiety.", m: "", zh: "Auxiliary inversion after 'Not only'." },
+        { s: "Only by enforcing strict laws", v: "can we eradicate", o: "corruption.", m: "", zh: "Main-clause inversion after 'Only by...'." }
+      ],
+      scramblers: [
+        { prompt: "Under no circumstances should students compromise their academic integrity.", chunks: ["Under no circumstances", "should students", "compromise", "their academic integrity."], ans: "Under no circumstances should students compromise their academic integrity." },
+        { prompt: "Seldom have we witnessed such rapid innovation.", chunks: ["Seldom have we", "witnessed", "such rapid innovation."], ans: "Seldom have we witnessed such rapid innovation." }
+      ],
+      pitfalls: [
+        { wrong: "Never before society has faced such challenges.", options: ["Never before has society faced such challenges.", "Never before did society has faced such challenges."], ans: 0, explain: "Invert auxiliary 'has' before subject 'society'." },
+        { wrong: "Only when citizens cooperate can we achieved sustainability.", options: ["Only when citizens cooperate can we achieve sustainability.", "Only when citizens cooperate we can achieve sustainability."], ans: 0, explain: "Use bare infinitive 'achieve' after modal 'can'." }
+      ],
+      quiz: [
+        { q: "1. Not only ___ the policy reduce congestion, but it also lowers emissions.", opts: ["it does", "does", "is", "has"], a: 1 },
+        { q: "2. Rarely ___ such unanimous consensus.", opts: ["we see", "do we see", "we do see", "saw we"], a: 1 },
+        { q: "3. Only through lifelong learning ___ adaptable.", opts: ["workers can remain", "can workers remain", "can remain workers", "do workers remain"], a: 1 },
+        { q: "4. Hardly had the law been passed ___ debate erupted.", opts: ["than", "when", "then", "that"], a: 1 },
+        { q: "5. Which is CORRECT?", opts: ["Under no circumstances should privacy be violated.", "Under no circumstances privacy should be violated.", "Under no circumstances should privacy violated.", "Under no circumstances does privacy violated."], a: 0 }
+      ]
+    },
+    {
+      id: "g_ks4_3", title: "G18. Third Conditionals & Subjunctive Mood",
+      formula: "[3rd Cond: If + had + p.p., would have + p.p.] | [Subjunctive: It is imperative that + S + bare infinitive]",
+      guide: "Third conditionals evaluate counterfactual past events. Mandative subjunctive uses the base verb after 'imperative/vital/recommend/propose that'.",
+      contrast: "❌ Error: If they had acted, the crisis would not happen. → ✅ ...would not have happened.",
+      examples: [
+        { s: "If authorities had intervened earlier,", v: "the epidemic", o: "would have been contained.", m: "", zh: "Counterfactual past evaluation." },
+        { s: "It is imperative that the government", v: "prioritize", o: "affordable housing.", m: "", zh: "Subjunctive base verb 'prioritize'." }
+      ],
+      scramblers: [
+        { prompt: "It is essential that every journalist verify digital sources.", chunks: ["It is essential", "that every journalist", "verify", "digital sources."], ans: "It is essential that every journalist verify digital sources." },
+        { prompt: "Had we invested in solar energy earlier, emissions would have declined.", chunks: ["Had we invested", "in solar energy earlier,", "emissions", "would have declined."], ans: "Had we invested in solar energy earlier, emissions would have declined." }
+      ],
+      pitfalls: [
+        { wrong: "If he would have studied harder, he would have passed.", options: ["If he had studied harder, he would have passed.", "If he studied harder, he would have passed."], ans: 0, explain: "Use 'had + p.p.' inside the If-clause, never 'would have'." },
+        { wrong: "The panel recommended that the law is abolished.", options: ["The panel recommended that the law be abolished.", "The panel recommended that the law was abolished."], ans: 0, explain: "Subjunctive requires base verb 'be'." }
+      ],
+      quiz: [
+        { q: "1. If the witness had testified, the defendant ___ convicted.", opts: ["will be", "would be", "would have been", "had been"], a: 2 },
+        { q: "2. Formal inversion of 'If the bank had monitored...':", opts: ["Did the bank monitor...", "Had the bank monitored...", "Have the bank monitored...", "Should the bank monitored..."], a: 1 },
+        { q: "3. It is vital that the judiciary ___ impartial.", opts: ["remains", "remained", "remain", "is remaining"], a: 2 },
+        { q: "4. I wish I ___ more attention to well-being last year.", opts: ["paid", "pay", "had paid", "would pay"], a: 2 },
+        { q: "5. Mixed: If she had taken the scholarship in 2024, she ___ at university now.", opts: ["would be studying", "would have studied", "will be studying", "studied"], a: 0 }
+      ]
+    },
+    {
+      id: "g_ks4_4", title: "G19. Nominalization & Academic Hedging",
+      formula: "[Verb/Adj Clause → Abstract Noun Phrase] + [Hedging: tends to / appears to / may contribute to]",
+      guide: "Turn spoken verb-heavy clauses into formal noun phrases (Nominalization) and avoid extreme absolutes by using measured hedging verbs.",
+      contrast: "❌ Spoken: People eat too much sugar so everyone gets fat. → ✅ Excessive sugar consumption tends to increase obesity risk.",
+      examples: [
+        { s: "The implementation of plastic legislation", v: "has reduced", o: "waste generation.", m: "", zh: "Nominalized subject & object." },
+        { s: "Prolonged academic stress", v: "appears to correlate with", o: "adolescent anxiety.", m: "", zh: "Hedged academic claim." }
+      ],
+      scramblers: [
+        { prompt: "The proliferation of misinformation poses a threat to social harmony.", chunks: ["The proliferation of", "misinformation", "poses a threat", "to social harmony."], ans: "The proliferation of misinformation poses a threat to social harmony." },
+        { prompt: "A sedentary lifestyle is widely believed to contribute to chronic illness.", chunks: ["A sedentary lifestyle", "is widely believed", "to contribute to", "chronic illness."], ans: "A sedentary lifestyle is widely believed to contribute to chronic illness." }
+      ],
+      pitfalls: [
+        { wrong: "AI will definitely destroy 100% of human jobs tomorrow.", options: ["AI may render certain repetitive jobs obsolete over time.", "AI must destroy every job immediately."], ans: 0, explain: "Academic writing uses measured hedging ('may render...')." },
+        { wrong: "Because the district was revitalized, it attracted tourists.", options: ["The revitalization of the district enhanced its appeal to tourists.", "Revitalize the district attracted tourists."], ans: 0, explain: "Nominalize into 'The revitalization of...'." }
+      ],
+      quiz: [
+        { q: "1. Best nominalization of 'Because they abolished the tariff, trade grew':", opts: ["Abolish tariff made trade grow.", "The abolition of the tariff stimulated trade growth.", "Because of abolish tariff, trade grew.", "The tariff abolished so trade growth."], a: 1 },
+        { q: "2. Noun form of 'proliferate':", opts: ["proliferative", "proliferation", "proliferating", "proliferated"], a: 1 },
+        { q: "3. Which demonstrates academic hedging?", opts: ["undoubtedly proves beyond doubt", "tends to suggest a strong correlation", "always forces every citizen", "never has any effect"], a: 1 },
+        { q: "4. 'The rapid ___ of automation transformed industry.'", opts: ["expand", "expansive", "expansion", "expanded"], a: 2 },
+        { q: "5. Most formal academic sentence:", opts: ["Old people make hospitals broke.", "An ageing demographic places fiscal strain on public healthcare.", "Because people live long, hospitals have no cash.", "Hospitals spend too much money on old people."], a: 1 }
+      ]
+    },
+    {
+      id: "g_ks4_5", title: "G20. Discourse Markers & Concession Syntax",
+      formula: "[Despite / In spite of + Noun / V-ing] vs. [Although / Whereas / While + Subject + Verb Clause]",
+      guide: "'Despite' and 'In spite of' are prepositions (followed by a Noun or Gerund, NEVER a bare clause, and never 'Despite of'). 'Although/Whereas/While' take full clauses.",
+      contrast: "❌ Error: Despite of the cost / Despite it was expensive → ✅ Despite the high cost...",
+      examples: [
+        { s: "Despite the convenience of e-commerce,", v: "physical shops", o: "remain indispensable.", m: "", zh: "Despite + Noun Phrase." },
+        { s: "Whereas rote learning focuses on memory,", v: "inquiry-based learning", o: "nurtures critical thinking.", m: "", zh: "Whereas + contrasting clause." }
+      ],
+      scramblers: [
+        { prompt: "In spite of facing obstacles, the team achieved a breakthrough.", chunks: ["In spite of", "facing obstacles,", "the team", "achieved a breakthrough."], ans: "In spite of facing obstacles, the team achieved a breakthrough." },
+        { prompt: "The proposal is viable; furthermore, it enjoys public consensus.", chunks: ["The proposal is viable;", "furthermore,", "it enjoys", "public consensus."], ans: "The proposal is viable; furthermore, it enjoys public consensus." }
+      ],
+      pitfalls: [
+        { wrong: "Despite of the stringent regulations, illicit trade continues.", options: ["Despite the stringent regulations, illicit trade continues.", "In spite the stringent regulations, illicit trade continues."], ans: 0, explain: "'Despite' never takes 'of'." },
+        { wrong: "Despite the economy grew rapidly, wealth disparity widened.", options: ["Despite the rapid economic growth, wealth disparity widened.", "In spite of the economy grew rapidly, wealth disparity widened."], ans: 0, explain: "Follow 'Despite' with a noun phrase ('the rapid economic growth')." }
+      ],
+      quiz: [
+        { q: "1. ___ the exorbitant fees, thousands of applicants compete.", opts: ["Although", "Despite", "Whereas", "Nevertheless"], a: 1 },
+        { q: "2. ___ the law is well-intentioned, enforcement is difficult.", opts: ["Despite", "In spite of", "Notwithstanding", "Although"], a: 3 },
+        { q: "3. Which links two contrasting clauses inside one sentence?", opts: ["However", "Nevertheless", "Whereas", "Consequently"], a: 2 },
+        { q: "4. The firm failed to innovate; ___, its products became obsolete.", opts: ["consequently", "despite", "whereas", "although"], a: 0 },
+        { q: "5. Which is grammatically sound?", opts: ["Despite of working hard, he failed.", "Although working hard, but he failed.", "Despite the fact that he worked hard, he failed.", "In spite that he worked hard, he failed."], a: 2 }
+      ]
+    }
+  ]
+};
+
+/* ============================================================================
+   3. RANKS & COLLECTIBLE VIBE CARDS DEFINITIONS (#6)
+   ============================================================================ */
+const RANKS = [
+  { minXP: 0, icon: "🌱", title: "Syllable Rookie • 音节萌新", badge: "Bronze I" },
+  { minXP: 100, icon: "⚡", title: "Vibe Explorer • 语感探索者", badge: "Silver II" },
+  { minXP: 300, icon: "🔥", title: "Syntax Ninja • 造句忍者", badge: "Gold III" },
+  { minXP: 600, icon: "💎", title: "Kowloon Scholar • 九龙学霸", badge: "Diamond IV" },
+  { minXP: 1000, icon: "👑", title: "HKDSE Grandmaster • DSE宗师", badge: "Mythic V" }
+];
+
+const VIBE_CARDS = [
+  { id: "c_first", icon: "🚀", name: "First Blood • 初试锋芒", desc: "Earn your first 20 XP on LingoVibe HK", check: s => s.xp >= 20 },
+  { id: "c_vocab25", icon: "🧠", name: "Syllable Sniper • 音节狙击手", desc: "Mark at least 10 curriculum words as Mastered", check: s => Object.keys(s.mastered).filter(k => s.mastered[k]).length >= 10 },
+  { id: "c_listen5", icon: "🎧", name: "Ear of Steel • 黄金顺风耳", desc: "Clear 5 Blind Listening Dictation challenges", check: s => (s.blindClears || 0) >= 5 },
+  { id: "c_streak5", icon: "🔥", name: "Combo On Fire • 五连暴击", desc: "Reach a live combo streak of 5 or higher", check: s => s.streak >= 5 },
+  { id: "c_ks1", icon: "🥉", name: "KS1 Pioneer • 小学基石", desc: "Pass any KS1 Topic or Grammar Quiz with ≥80%", check: s => Object.values(s.passedThemes).some(v => v >= 80) || Object.values(s.passedGrammar).some(v => v >= 80) },
+  { id: "c_ks2", icon: "🥈", title: "KS2 Challenger", name: "KS2 Challenger • 高小进阶", desc: "Unlock Key Stage 2 (P4–P6)", check: s => s.unlocked.KS2 },
+  { id: "c_ks3", icon: "🥇", name: "KS3 Maverick • 初中飞跃", desc: "Unlock Key Stage 3 (S1–S3)", check: s => s.unlocked.KS3 },
+  { id: "c_ks4", icon: "👑", name: "HKDSE Legend • 文凭试王者", desc: "Unlock Key Stage 4 (100% English Immersion)", check: s => s.unlocked.KS4 }
+];
+
+/* ============================================================================
+   4. STATE ENGINE & 7-DAY CALENDAR TRACKER
+   ============================================================================ */
+const $ = id => document.getElementById(id);
+const DB = {};
+const STORAGE_KEY = "lingovibe_hk_v6_state";
+
+let state = {
+  stage: "KS1", track: "vocab", themeIdx: 0, grammarIdx: 0, step: 1, page: 0,
+  xp: 0, streak: 0, blindClears: 0, activeDays: {},
+  unlocked: { KS1: true, KS2: false, KS3: false, KS4: false },
+  passedThemes: {}, passedGrammar: {}, mastered: {}
+};
+
+// Ephemeral UI state
+let matchLeft = null, matchDone = {}, spellIdx = 0, builtSyls = [], scramIdx = 0, builtChunks = [], pitSolved = {};
+let blindIdx = 0, blindBuilt = [], blindHintShown = false, blindClearedNow = false;
+
+function getTodayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function getCurrentRank() {
+  let r = RANKS[0];
+  for (const item of RANKS) { if (state.xp >= item.minXP) r = item; }
+  return r;
+}
+
+function hydrate() {
+  Object.entries(COMPACT_LEXICON).forEach(([code, raw]) => {
+    DB[code] = {
+      code, name: raw.name, zhRatio: raw.zhRatio, banner: raw.banner,
+      themes: raw.themes.map(t => ({
+        id: t.id, title: t.title,
+        words: t.raw.split("|").map(item => {
+          const [sRaw, meaning] = item.split(":");
+          const sylStr = sRaw.includes("→") ? sRaw.split("→")[1] : sRaw;
+          const syllables = sylStr.split("·");
+          const word = syllables.join("");
+          return { word, sylStr, syllables, pos: t.pos, meaning, example: `Context: "${word}" is a core ${code} curriculum word.` };
+        })
+      })),
+      grammar: GRAMMAR_DB[code]
+    };
+  });
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (saved) Object.assign(state, saved);
+  } catch (e) {}
+  if (!state.activeDays) state.activeDays = {};
+  state.activeDays[getTodayKey()] = true;
+}
+
+function save() {
+  state.activeDays[getTodayKey()] = true;
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+  $("xpNum").innerText = state.xp;
+  $("streakNum").innerText = state.streak;
+  const rk = getCurrentRank();
+  $("sideRankIcon").innerText = rk.icon;
+  $("sideRankTitle").innerText = rk.title;
+}
+
+function reward(pts = 10, burst = false) {
+  state.xp += pts;
+  state.streak += 1;
+  save();
+  if (burst && window.confetti) confetti({ particleCount: 55, spread: 65, origin: { y: 0.7 } });
+}
+
+function speak(text, slow = false) {
+  if (!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-GB"; u.rate = slow ? 0.58 : 0.94;
+  speechSynthesis.speak(u);
+}
+
+function toggleDrawer(open) {
+  $("leftNav").classList.toggle("-translate-x-full", !open);
+  $("drawerBackdrop").classList.toggle("hidden", !open);
+}
+
+/* ============================================================================
+   5. NAVIGATION & SIDEBAR RENDERER
+   ============================================================================ */
+function renderAll() {
+  save();
+  const st = DB[state.stage];
+  const isKS4 = state.stage === "KS4";
+  $("scaffoldingBanner").innerText = st.banner;
+
+  // Mobile Bottom Nav active state
+  ["vocab", "grammar", "listen", "vibe"].forEach(t => {
+    const btn = $("mNav" + t[0].toUpperCase() + t.slice(1));
+    if (btn) btn.className = `flex flex-col items-center py-1 rounded-xl ${state.track === t ? 'text-amber-400 font-black' : 'text-slate-400'}`;
+  });
+
+  // 1. Key Stage Bar
+  $("ksBar").innerHTML = Object.values(DB).map(s => {
+    const ok = state.unlocked[s.code], act = s.code === state.stage;
+    return `<button onclick="setStage('${s.code}')" class="p-2 rounded-xl border text-left transition btn-bounce ${act ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 border-violet-400 text-white shadow' : ok ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-slate-900/40 border-slate-800 text-slate-500 opacity-70'}">
+      <div class="flex justify-between items-center text-xs font-black"><span>${ok ? '⚡' : '🔒'} ${s.code}</span><span class="text-[10px] bg-black/30 px-1.5 py-0.5 rounded">${s.zhRatio}%中</span></div>
+      <div class="text-[10px] opacity-80 mt-0.5">500词 • 5语法</div>
+    </button>`;
+  }).join("");
+
+  // 2. Track Switcher (5 Modes)
+  const tracks = [
+    { id: "vocab", label: isKS4 ? "📖 Vocab Quests (500w)" : "📖 词汇刷词闯关 (500词)" },
+    { id: "grammar", label: isKS4 ? "🧩 Syntax Lab (5 Units)" : "🧩 语法造句实验室 (5单元)" },
+    { id: "listen", label: isKS4 ? "🎧 Blind Listening Lab" : "🎧 盲听辨音挑战室 (#5)" },
+    { id: "vibe", label: isKS4 ? "🏆 Vibe Cards & Ranks" : "🏆 段位徽章与成就卡 (#6)" },
+    { id: "exam", label: isKS4 ? "🎓 Boss Exam (>80%)" : "🎓 阶段晋级 Boss 战 (>80%)" }
+  ];
+  $("moduleSwitcher").innerHTML = tracks.map(t => `<button onclick="switchTrack('${t.id}')" class="w-full text-left px-3 py-1.5 rounded-xl text-xs font-extrabold flex justify-between items-center btn-bounce ${state.track === t.id ? 'bg-amber-400 text-slate-950 shadow' : 'bg-slate-900 text-slate-300 border border-slate-800'}"><span>${t.label}</span><span>${state.track === t.id ? '▶' : ''}</span></button>`).join("");
+
+  // 3. Sidebar Directory
+  if (state.track === "vocab" || (state.track === "listen" && state.step === 1)) {
+    $("sidebarTitle").innerText = isKS4 ? "📚 10 Vocab Themes" : "📚 10 大词汇主题";
+    $("stageCountLabel").innerText = "500 Words";
+    $("sidebarHint").innerText = state.track === "listen" ? "选择任一主题进行单词盲听测试" : "每主题50词，测验 ≥80% 解锁下一主题";
+    $("sidebarList").innerHTML = st.themes.map((th, i) => {
+      const ok = i === 0 || state.passedThemes[st.themes[i - 1].id] >= 80 || state.passedThemes.ALL;
+      const sc = state.passedThemes[th.id];
+      return `<button onclick="selectUnit('${state.track}',${i},${ok})" class="w-full text-left p-2 rounded-xl border text-xs flex justify-between items-center ${i === state.themeIdx ? 'bg-violet-600/30 border-violet-400 text-white font-extrabold' : ok ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-slate-900/30 border-slate-800/40 text-slate-600'}">
+        <span class="truncate">${ok ? (sc >= 80 ? '🏆' : '📖') : '🔒'} ${th.title}</span>
+        <span class="text-[10px] px-1.5 py-0.5 rounded-full ${sc >= 80 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'}">${sc !== undefined ? sc + '%' : '50词'}</span>
+      </button>`;
+    }).join("");
+  } else if (state.track === "grammar" || (state.track === "listen" && state.step === 2)) {
+    $("sidebarTitle").innerText = isKS4 ? "🧩 5 Syntax Quests" : "🧩 5 大语法造句单元";
+    $("stageCountLabel").innerText = "5 Units";
+    $("sidebarHint").innerText = state.track === "listen" ? "选择任一语法单元进行整句盲听" : "公式 → 造句 → 改错 → 测验 (≥80%)";
+    $("sidebarList").innerHTML = st.grammar.map((g, i) => {
+      const ok = i === 0 || state.passedGrammar[st.grammar[i - 1].id] >= 80 || state.passedThemes.ALL;
+      const sc = state.passedGrammar[g.id];
+      return `<button onclick="selectUnit('${state.track}',${i},${ok})" class="w-full text-left p-2 rounded-xl border text-xs flex justify-between items-center ${i === state.grammarIdx ? 'bg-emerald-600/30 border-emerald-400 text-white font-extrabold' : ok ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-slate-900/30 border-slate-800/40 text-slate-600'}">
+        <span class="truncate">${ok ? (sc >= 80 ? '🏆' : '🧩') : '🔒'} ${g.title}</span>
+        <span class="text-[10px] px-1.5 py-0.5 rounded-full ${sc >= 80 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'}">${sc !== undefined ? sc + '%' : 'Go'}</span>
+      </button>`;
+    }).join("");
+  } else {
+    const unlockedCards = VIBE_CARDS.filter(c => c.check(state)).length;
+    $("sidebarTitle").innerText = "🏆 玩家生涯战绩";
+    $("stageCountLabel").innerText = `${unlockedCards}/8 Cards`;
+    $("sidebarHint").innerText = "累积 XP 与通关自动点亮全息成就卡";
+    $("sidebarList").innerHTML = `<div class="p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs space-y-1.5 text-slate-300">
+      <div>• 已通词汇主题：<b>${st.themes.filter(t => state.passedThemes[t.id] >= 80).length}/10</b></div>
+      <div>• 已通语法单元：<b>${st.grammar.filter(g => state.passedGrammar[g.id] >= 80).length}/5</b></div>
+      <div>• 盲听辨音通关：<b>${state.blindClears || 0} 次</b></div>
+      <div>• 已点亮成就卡：<b>${unlockedCards} / ${VIBE_CARDS.length} 张</b></div>
+    </div>`;
+  }
+
+  // 4. Step Navigation Pills
+  $("searchWrapper").style.display = state.track === "vocab" && state.step === 1 ? "block" : "none";
+  if (state.track === "exam") {
+    $("stepNav").innerHTML = `<span class="px-3 py-1.5 rounded-xl text-xs font-black bg-amber-400 text-slate-950">🎓 ${st.name} — Boss 晋级战 (10题 • 需 >80%)</span>`;
+  } else if (state.track === "listen") {
+    const lTabs = ["1. 🎧 单词音节盲听 (Word Ear)", "2. 🎧 整句语流盲听 (Sentence Ear)"];
+    $("stepNav").innerHTML = lTabs.map((l, idx) => `<button onclick="state.step=${idx + 1};blindIdx=0;blindBuilt=[];blindHintShown=false;blindClearedNow=false;renderAll()" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap btn-bounce ${state.step === idx + 1 ? 'bg-fuchsia-600 text-white shadow-xs' : 'bg-slate-100 text-slate-700'}">${l}</button>`).join("");
+  } else if (state.track === "vibe") {
+    $("stepNav").innerHTML = `<span class="px-3.5 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white">🏆 Vibe Cards 荣誉殿堂 • 7日打卡与段位徽章</span>`;
+  } else {
+    const labels = state.track === "vocab"
+      ? ["1. 音节词卡", "2. 词义配对", "3. 拼写默写", "4. 主题测验"]
+      : ["1. 语法公式", "2. 词块造句", "3. 病句诊所", "4. 单元测验"];
+    $("stepNav").innerHTML = labels.map((l, idx) => `<button onclick="state.step=${idx + 1};renderStepAndMain()" class="px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap btn-bounce ${state.step === idx + 1 ? 'bg-violet-600 text-white shadow-xs' : 'bg-slate-100 text-slate-700'}">${l}</button>`).join("");
+  }
+
+  renderMain();
+}
+
+function renderStepAndMain() {
+  builtChunks = []; builtSyls = [];
+  renderAll();
+}
+
+function renderMain() {
+  const box = $("mainBox"), st = DB[state.stage];
+  if (state.track === "vocab") {
+    const th = st.themes[state.themeIdx];
+    const q = ($("searchBox")?.value || "").trim().toLowerCase();
+    const words = q ? th.words.filter(w => w.word.toLowerCase().includes(q) || w.meaning.toLowerCase().includes(q)) : th.words;
+    if (state.step === 1) renderVocabCards(box, th, words);
+    else if (state.step === 2) renderVocabMatch(box, th, th.words);
+    else if (state.step === 3) renderVocabSpell(box, th, th.words);
+    else renderQuiz(box, th.title, th.words.slice().sort(() => Math.random() - 0.5).slice(0, 10).map(w => ({
+      q: `"${w.meaning}" 对应的英文单词是：`,
+      opts: [...th.words.filter(x => x.word !== w.word).sort(() => Math.random() - 0.5).slice(0, 3), w].sort((a, b) => a.word.localeCompare(b.word)).map(o => o.sylStr),
+      ans: w.sylStr
+    })), pct => { state.passedThemes[th.id] = Math.max(state.passedThemes[th.id] || 0, pct); });
+  } else if (state.track === "grammar") {
+    const g = st.grammar[state.grammarIdx];
+    if (state.step === 1) renderGrammarFormula(box, g);
+    else if (state.step === 2) renderGrammarScrambler(box, g);
+    else if (state.step === 3) renderGrammarPitfall(box, g);
+    else renderQuiz(box, g.title, g.quiz.map(q => ({ q: q.q, opts: q.opts, ans: q.opts[q.a] })), pct => { state.passedGrammar[g.id] = Math.max(state.passedGrammar[g.id] || 0, pct); });
+  } else if (state.track === "listen") {
+    renderBlindListeningLab(box, st);
+  } else if (state.track === "vibe") {
+    renderVibeTrophyRoom(box, st);
+  } else {
+    const pool = st.themes.flatMap(t => t.words);
+    const vQs = pool.slice().sort(() => Math.random() - 0.5).slice(0, 6).map(w => ({
+      q: `[词汇] "${w.meaning}" 对应的单词：`,
+      opts: [...pool.filter(x => x.word !== w.word).sort(() => Math.random() - 0.5).slice(0, 3), w].sort((a, b) => a.word.localeCompare(b.word)).map(o => o.word),
+      ans: w.word
+    }));
+    const gQs = st.grammar.flatMap(g => g.quiz).sort(() => Math.random() - 0.5).slice(0, 4).map(q => ({
+      q: `[语法] ${q.q.replace(/^\d+\.\s*/, '')}`, opts: q.opts, ans: q.opts[q.a]
+    }));
+    renderQuiz(box, `${st.name} — 阶段晋级 Boss 战`, [...vQs, ...gQs], pct => {
+      if (pct > 80) {
+        const order = ["KS1", "KS2", "KS3", "KS4"];
+        const next = order[order.indexOf(state.stage) + 1];
+        if (next) state.unlocked[next] = true;
+      }
+    }, true);
+  }
+}
+
+/* ============================================================================
+   6. FEATURE #5: BLIND LISTENING DICTATION LAB (WORD & SENTENCE EAR TRAINING)
+   ============================================================================ */
+function renderBlindListeningLab(box, st) {
+  const isWordMode = state.step === 1;
+  if (isWordMode) {
+    const th = st.themes[state.themeIdx];
+    const words = th.words;
+    if (blindIdx >= words.length) blindIdx = 0;
+    const cur = words[blindIdx];
+    // Build pool of target syllables + 2 distractor syllables from same theme
+    const extraSyls = words[(blindIdx + 3) % words.length].syllables.slice(0, 2);
+    const sylPool = [...cur.syllables, ...extraSyls].sort((a, b) => a.localeCompare(b));
+
+    box.innerHTML = `
+      <div class="max-w-xl mx-auto space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
+          <div>
+            <span class="text-[10px] font-black uppercase bg-fuchsia-100 text-fuchsia-800 px-2.5 py-0.5 rounded-full">Blind Word Dictation • 盲听辨音</span>
+            <h3 class="font-black text-base text-slate-900 mt-1">${th.title} (${blindIdx + 1}/${words.length})</h3>
+          </div>
+          <span class="text-xs font-extrabold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">已盲听通关：${state.blindClears || 0} 次</span>
+        </div>
+
+        <!-- Blind Audio Pulse Card -->
+        <div class="p-6 rounded-3xl bg-gradient-to-br from-slate-950 via-violet-950 to-fuchsia-950 text-white text-center space-y-4 shadow-lg">
+          <p class="text-xs text-slate-300">🙈 英文拼写已隐藏！请点击下方按钮纯靠耳朵听音节：</p>
+          <div class="flex justify-center gap-3">
+            <button onclick="speak('${cur.word.replace(/'/g, "\\'")}', false)"
+              class="audio-pulse px-6 py-4 rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-500 font-black text-sm flex items-center gap-2 btn-bounce shadow-lg">
+              🔊 1.0x 原速盲听
+            </button>
+            <button onclick="speak('${cur.syllables.join(" ... ").replace(/'/g, "\\'")}', true)"
+              class="px-5 py-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 font-black text-sm flex items-center gap-2 btn-bounce">
+              🐢 0.6x 慢速音节
+            </button>
+          </div>
+
+          <div class="pt-1">
+            ${blindHintShown || blindClearedNow
+              ? `<div class="inline-block px-4 py-1.5 rounded-xl bg-amber-400/20 border border-amber-300/40 text-amber-200 text-xs font-bold">
+                  💡 词义提示：${cur.meaning} (${cur.pos} • 共 ${cur.syllables.length} 个音节)
+                 </div>`
+              : `<button onclick="blindHintShown=true;renderMain()" class="text-xs text-slate-400 hover:text-white underline">👀 实在听不出？点击偷看中文提示</button>`
+            }
+          </div>
+        </div>
+
+        <!-- Syllable Assembly Area -->
+        <div class="p-5 rounded-3xl bg-slate-50 border border-slate-200 space-y-4">
+          <div class="text-xs font-extrabold text-slate-600">1️⃣ 点击你听到的音节块（注意包含2个干扰音节！）：</div>
+          <div class="flex flex-wrap gap-2">
+            ${sylPool.map(s => `<button onclick="blindBuilt.push('${s.replace(/'/g, "\\'")}');renderMain()" class="px-4 py-2 rounded-xl bg-white border border-slate-300 text-sm font-black hover:border-fuchsia-500 btn-bounce shadow-2xs">${s}</button>`).join("")}
+            <button onclick="blindBuilt=[];renderMain()" class="px-3 py-2 rounded-xl bg-rose-50 text-rose-700 text-xs font-bold">清空</button>
+          </div>
+
+          <div class="min-h-[52px] p-3.5 rounded-2xl bg-white border-2 border-dashed border-fuchsia-400 flex items-center justify-between">
+            <span class="font-mono text-base font-black text-fuchsia-900">
+              ${blindBuilt.length ? blindBuilt.join(" · ") : "点击上方音节块还原你听到的单词..."}
+            </span>
+            ${blindBuilt.length ? `<span class="text-xs font-bold text-slate-400">→ ${blindBuilt.join("")}</span>` : ''}
+          </div>
+
+          <button onclick="checkBlindWord('${cur.word.replace(/'/g, "\\'")}', ${words.length})"
+            class="w-full bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-black text-xs py-3 rounded-xl btn-bounce shadow">
+            ⚡ 核对盲听拼写 (+25 XP)
+          </button>
+
+          <div id="blindFeedback" class="text-xs font-black"></div>
+
+          <div class="flex justify-between pt-2 border-t border-slate-200 text-xs font-bold">
+            <button onclick="blindIdx=Math.max(0,blindIdx-1);blindBuilt=[];blindHintShown=false;blindClearedNow=false;renderMain()">← 上一词</button>
+            <button onclick="blindIdx=(blindIdx+1)%${words.length};blindBuilt=[];blindHintShown=false;blindClearedNow=false;renderMain()" class="text-fuchsia-600">下一词 →</button>
+          </div>
+        </div>
+      </div>`;
+  } else {
+    // Sentence Blind Listening Mode
+    const g = st.grammar[state.grammarIdx];
+    const list = g.scramblers;
+    if (blindIdx >= list.length) blindIdx = 0;
+    const item = list[blindIdx];
+    const chunks = [...item.chunks].sort((a, b) => a.localeCompare(b));
+
+    box.innerHTML = `
+      <div class="max-w-xl mx-auto space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
+          <div>
+            <span class="text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">Blind Sentence Dictation • 整句盲听</span>
+            <h3 class="font-black text-base text-slate-900 mt-1">${g.title} (${blindIdx + 1}/${list.length})</h3>
+          </div>
+        </div>
+
+        <div class="p-6 rounded-3xl bg-gradient-to-br from-slate-950 via-emerald-950 to-teal-950 text-white text-center space-y-4 shadow-lg">
+          <p class="text-xs text-slate-300">🎧 不看文字，听母语语流速度，凭耳力重组整句：</p>
+          <div class="flex justify-center gap-3">
+            <button onclick="speak('${item.ans.replace(/'/g, "\\'")}', false)"
+              class="audio-pulse px-6 py-4 rounded-2xl bg-emerald-500 text-slate-950 font-black text-sm flex items-center gap-2 btn-bounce shadow-lg">
+              🔊 1.0x 原速整句盲听
+            </button>
+            <button onclick="speak('${item.ans.replace(/'/g, "\\'")}', true)"
+              class="px-5 py-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 font-black text-sm flex items-center gap-2 btn-bounce">
+              🐢 0.6x 慢速逐词听
+            </button>
+          </div>
+          <div>
+            ${blindHintShown || blindClearedNow
+              ? `<div class="inline-block px-4 py-1.5 rounded-xl bg-amber-400/20 border border-amber-300/40 text-amber-200 text-xs font-bold">💡 句意提示：${item.prompt}</div>`
+              : `<button onclick="blindHintShown=true;renderMain()" class="text-xs text-slate-400 hover:text-white underline">👀 偷看中文句意提示</button>`
+            }
+          </div>
+        </div>
+
+        <div class="p-5 rounded-3xl bg-slate-50 border border-slate-200 space-y-4">
+          <div class="text-xs font-extrabold text-slate-600">点击听到的词块按顺序拼出句子：</div>
+          <div class="flex flex-wrap gap-2">
+            ${chunks.map(c => `<button onclick="blindBuilt.push('${c.replace(/'/g, "\\'")}');renderMain()" class="px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-xs font-black btn-bounce shadow-2xs">+ ${c}</button>`).join("")}
+            <button onclick="blindBuilt=[];renderMain()" class="px-3 py-2 rounded-xl bg-rose-50 text-rose-700 text-xs font-bold">清空</button>
+          </div>
+          <div class="min-h-[52px] p-3.5 rounded-2xl bg-white border-2 border-dashed border-emerald-400 text-sm font-black text-slate-900 flex items-center">
+            ${blindBuilt.join(" ") || "点击上方词块还原你听到的整句..."}
+          </div>
+          <button onclick="checkBlindSentence('${item.ans.replace(/'/g, "\\'")}', ${list.length})"
+            class="w-full bg-emerald-600 text-white font-black text-xs py-3 rounded-xl btn-bounce shadow">
+            ⚡ 核对整句盲听 (+25 XP)
+          </button>
+          <div id="blindFeedback" class="text-xs font-black"></div>
+        </div>
+      </div>`;
+  }
+}
+
+function checkBlindWord(ans, total) {
+  const userWord = blindBuilt.join("").trim().toLowerCase();
+  const fb = $("blindFeedback");
+  if (userWord === ans.toLowerCase()) {
+    blindClearedNow = true;
+    state.blindClears = (state.blindClears || 0) + 1;
+    reward(25, true);
+    fb.className = "p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-black";
+    fb.innerText = `🎧 顺风耳暴击！正确答案正是 "${ans}" (+25 XP)！`;
+    speak(ans, false);
+    setTimeout(() => { blindIdx = (blindIdx + 1) % total; blindBuilt = []; blindHintShown = false; blindClearedNow = false; renderAll(); }, 1100);
+  } else {
+    state.streak = 0; save();
+    fb.className = "p-3 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 text-xs font-black shake";
+    fb.innerText = `❌ 听音有偏差，再听一次 0.6x 慢速音节或清空重拼！（目标长度为 ${ans.length} 个字母）`;
+  }
+}
+
+function checkBlindSentence(ans, total) {
+  const userSent = blindBuilt.join(" ").trim().toLowerCase();
+  const fb = $("blindFeedback");
+  if (userSent === ans.toLowerCase()) {
+    blindClearedNow = true;
+    state.blindClears = (state.blindClears || 0) + 1;
+    reward(25, true);
+    fb.className = "p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-black";
+    fb.innerText = `🎧 整句盲听满分！+25 XP！`;
+    speak(ans, false);
+    setTimeout(() => { blindIdx = (blindIdx + 1) % total; blindBuilt = []; blindHintShown = false; blindClearedNow = false; renderAll(); }, 1200);
+  } else {
+    state.streak = 0; save();
+    fb.className = "p-3 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 text-xs font-black shake";
+    fb.innerText = `❌ 词块顺序不对，再点一次原速/慢速播放仔细辨音！`;
+  }
+}
+
+/* ============================================================================
+   7. FEATURE #6: COLLECTIBLE VIBE CARDS, RANK BADGES & 7-DAY FLAME CALENDAR
+   ============================================================================ */
+function renderVibeTrophyRoom(box, st) {
+  const curRank = getCurrentRank();
+  const nextRank = RANKS.find(r => r.minXP > state.xp) || curRank;
+  const pctToNext = nextRank === curRank ? 100 : Math.min(100, Math.round((state.xp / nextRank.minXP) * 100));
+
+  // Build 7-day calendar array ending today
+  const days7 = [];
+  const dayNames = ["日", "一", "二", "三", "四", "五", "六"];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    days7.push({ label: i === 0 ? "今日" : "周" + dayNames[d.getDay()], date: `${d.getMonth() + 1}/${d.getDate()}`, active: !!state.activeDays[key] });
+  }
+
+  box.innerHTML = `
+    <div class="space-y-6">
+      <!-- Top Hero Rank Card -->
+      <div class="holo-card rounded-3xl p-6 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+          <div class="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-4xl shadow-inner">
+            ${curRank.icon}
+          </div>
+          <div>
+            <span class="text-[10px] font-black uppercase tracking-widest bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-full">${curRank.badge}</span>
+            <h3 class="text-xl font-black mt-1 text-white">${curRank.title}</h3>
+            <p class="text-xs text-slate-300 mt-0.5">当前总经验：<b>${state.xp} XP</b> • 最高连击：<b>🔥 ${state.streak}</b> • 盲听通关：<b>🎧 ${state.blindClears || 0}</b></p>
+          </div>
+        </div>
+        <div class="w-full md:w-64 bg-black/30 p-3.5 rounded-2xl border border-white/10">
+          <div class="flex justify-between text-[11px] font-bold text-slate-300 mb-1.5">
+            <span>距离下一段位</span>
+            <span class="text-amber-300">${state.xp} / ${nextRank.minXP} XP</span>
+          </div>
+          <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+            <div class="h-full bg-gradient-to-r from-violet-400 via-fuchsia-400 to-amber-300" style="width:${pctToNext}%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7-Day Flame Check-In Calendar -->
+      <div class="p-5 rounded-3xl bg-slate-50 border border-slate-200 space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <h4 class="font-black text-sm text-slate-900">🔥 7日语感充电打卡日历 (7-Day Vibe Calendar)</h4>
+            <p class="text-xs text-slate-500">每天打开练习任意单词或盲听即自动点亮当日火焰</p>
+          </div>
+          <span class="text-xs font-black text-orange-600 bg-orange-100 px-3 py-1 rounded-full">
+            累计打卡 ${Object.keys(state.activeDays).length} 天
+          </span>
+        </div>
+        <div class="grid grid-cols-7 gap-2">
+          ${days7.map(d => `
+            <div class="p-2.5 rounded-2xl border text-center ${d.active ? 'bg-gradient-to-b from-orange-50 to-amber-50 border-orange-300 text-orange-900 shadow-2xs' : 'bg-white border-slate-200 text-slate-400'}">
+              <div class="text-[10px] font-extrabold">${d.label}</div>
+              <div class="text-lg my-1">${d.active ? '🔥' : '⚪'}</div>
+              <div class="text-[10px] font-mono">${d.date}</div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+
+      <!-- 8 Collectible Vibe Cards Grid -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <h4 class="font-black text-sm text-slate-900">🃏 限定全息成就卡册 (Collectible Vibe Cards)</h4>
+          <span class="text-xs font-bold text-violet-700">已解锁 ${VIBE_CARDS.filter(c => c.check(state)).length} / ${VIBE_CARDS.length}</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          ${VIBE_CARDS.map(card => {
+            const unlocked = card.check(state);
+            return `
+              <div class="pop-card rounded-2xl p-4 border ${unlocked ? 'holo-card text-white border-violet-400 shadow-md' : 'bg-slate-100 border-slate-200 text-slate-400 opacity-75'} flex flex-col justify-between min-h-[148px]">
+                <div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-2xl">${unlocked ? card.icon : '🔒'}</span>
+                    <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${unlocked ? 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/40' : 'bg-slate-200 text-slate-500'}">
+                      ${unlocked ? 'UNLOCKED ⚡' : 'LOCKED'}
+                    </span>
+                  </div>
+                  <h5 class="font-black text-sm mt-2.5 ${unlocked ? 'text-amber-300' : 'text-slate-600'}">${card.name}</h5>
+                  <p class="text-[11px] mt-1 leading-relaxed ${unlocked ? 'text-slate-200' : 'text-slate-500'}">${card.desc}</p>
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ============================================================================
+   8. VOCABULARY & GRAMMAR VIEWS (STREAMLINED)
+   ============================================================================ */
+function renderVocabCards(box, th, words) {
+  const pages = Math.max(1, Math.ceil(words.length / 10));
+  if (state.page >= pages) state.page = 0;
+  const slice = words.slice(state.page * 10, (state.page + 1) * 10);
+
+  box.innerHTML = `
+    <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-100">
+      <div>
+        <h3 class="font-black text-base text-slate-900">${th.title}</h3>
+        <p class="text-xs text-slate-500">点击 🔊 听标准英音，点击 🐢 听慢速音节拆解，或切换到「🎧 盲听室」测试耳力</p>
+      </div>
+      <div class="flex gap-1 overflow-x-auto no-scrollbar">
+        ${Array.from({ length: pages }, (_, i) => `<button onclick="state.page=${i};renderMain()" class="px-2.5 py-1 rounded-xl text-xs font-extrabold btn-bounce ${state.page === i ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'}">组${i + 1}</button>`).join("")}
+      </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      ${slice.map(w => {
+        const done = state.mastered[w.word];
+        const pills = w.syllables.map((s, i) => `<span class="syl-pill syl-${i % 5}">${s}</span>`).join('<span class="text-slate-300 font-bold">·</span>');
+        return `<div class="pop-card p-3.5 rounded-2xl border ${done ? 'border-emerald-300 bg-emerald-50/40' : 'border-slate-200 bg-slate-50/50'} flex flex-col justify-between">
+          <div>
+            <div class="flex justify-between items-center gap-2">
+              <div><span class="text-base font-black text-slate-900">${w.word}</span><span class="text-[10px] font-mono bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded ml-1.5">${w.pos}</span></div>
+              <div class="flex gap-1">
+                <button onclick="speak('${w.word.replace(/'/g, "\\'")}',false)" class="px-2.5 py-1.5 rounded-xl bg-violet-600 text-white text-xs font-extrabold btn-bounce">🔊</button>
+                <button onclick="speak('${w.syllables.join(" ... ").replace(/'/g, "\\'")}',true)" class="px-2.5 py-1.5 rounded-xl bg-amber-100 text-amber-900 text-xs font-extrabold btn-bounce">🐢 音节</button>
+              </div>
+            </div>
+            <div class="my-1.5">${pills}</div>
+            <div class="text-xs font-extrabold text-slate-800">${w.meaning}</div>
+          </div>
+          <div class="flex justify-between items-center mt-2 pt-2 border-t border-slate-200/60">
+            <span class="text-[10px] text-slate-400">${w.syllables.length} 音节</span>
+            <button onclick="toggleMaster('${w.word.replace(/'/g, "\\'")}')" class="text-xs font-extrabold px-2.5 py-1 rounded-lg btn-bounce ${done ? 'bg-emerald-100 text-emerald-800' : 'bg-white border border-slate-200 text-slate-600'}">
+              ${done ? '✅ 已斩获 (+5 XP)' : '⚡ 标记掌握'}
+            </button>
+          </div>
+        </div>`;
+      }).join("")}
+    </div>`;
+}
+
+function toggleMaster(w) {
+  state.mastered[w] = !state.mastered[w];
+  if (state.mastered[w]) reward(5, false);
+  renderAll();
+}
+
+function renderVocabMatch(box, th, words) {
+  const slice = words.slice(state.page * 8, (state.page + 1) * 8);
+  const right = [...slice].sort((a, b) => a.meaning.localeCompare(b.meaning));
+  const allCleared = slice.every(w => matchDone[w.word]);
+
+  box.innerHTML = `
+    <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-100">
+      <div>
+        <h3 class="font-black text-base">⚡ 极速词义连线 (先点英文，再点释义)</h3>
+        <p class="text-xs text-slate-500">每次配对正确 +10 XP</p>
+      </div>
+      <div class="flex gap-1">
+        ${[0, 1, 2, 3, 4].map(i => `<button onclick="state.page=${i};matchDone={};renderMain()" class="px-2.5 py-1 rounded-xl text-xs font-extrabold ${state.page === i ? 'bg-violet-600 text-white' : 'bg-slate-100 text-slate-700'}">R${i + 1}</button>`).join("")}
+      </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div class="space-y-2">
+        ${slice.map(w => `<button ${matchDone[w.word] ? 'disabled' : ''} onclick="matchLeft='${w.word.replace(/'/g, "\\'")}';speak('${w.word.replace(/'/g, "\\'")}');renderMain()" class="w-full text-left p-3 rounded-2xl border text-xs font-black flex justify-between items-center btn-bounce ${matchDone[w.word] ? 'bg-emerald-50 border-emerald-300 text-emerald-700 opacity-50' : matchLeft === w.word ? 'bg-violet-600 border-violet-600 text-white shadow-md' : 'bg-white border-slate-200'}"><span>${w.sylStr}</span><span>${matchDone[w.word] ? '✅' : '🔊'}</span></button>`).join("")}
+      </div>
+      <div class="space-y-2">
+        ${right.map(w => `<button ${matchDone[w.word] ? 'disabled' : ''} onclick="checkMatch('${w.word.replace(/'/g, "\\'")}', this)" class="w-full text-left p-3 rounded-2xl border text-xs font-bold btn-bounce ${matchDone[w.word] ? 'bg-emerald-50 border-emerald-300 text-emerald-700 opacity-50' : 'bg-slate-50 border-slate-200'}">${matchDone[w.word] ? '✅ ' : ''}${w.meaning}</button>`).join("")}
+      </div>
+    </div>
+    ${allCleared ? `<div class="mt-4 p-4 rounded-2xl bg-emerald-50 border border-emerald-300 flex justify-between items-center"><span class="text-xs font-black text-emerald-900">🎉 本轮全清空！</span><button onclick="state.step=3;renderStepAndMain()" class="bg-emerald-600 text-white text-xs font-black px-4 py-2 rounded-xl">去拼写默写 →</button></div>` : ''}`;
+}
+
+function checkMatch(target, btn) {
+  if (!matchLeft) return;
+  if (matchLeft === target) {
+    matchDone[target] = true; matchLeft = null;
+    reward(10, Object.keys(matchDone).length % 8 === 0);
+    renderMain();
+  } else {
+    state.streak = 0; save();
+    btn.classList.add("shake", "bg-rose-100", "border-rose-400");
+    setTimeout(() => btn.classList.remove("shake", "bg-rose-100", "border-rose-400"), 350);
+  }
+}
+
+function renderVocabSpell(box, th, words) {
+  if (spellIdx >= words.length) spellIdx = 0;
+  const cur = words[spellIdx];
+  const syls = [...cur.syllables].sort(() => Math.random() - 0.5);
+
+  box.innerHTML = `
+    <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-100">
+      <h3 class="font-black text-base">⌨️ 音节积木拼词与默写 (${spellIdx + 1}/${words.length})</h3>
+      <button onclick="speak('${cur.word.replace(/'/g, "\\'")}',false)" class="bg-violet-600 text-white text-xs font-black px-3.5 py-2 rounded-xl btn-bounce">🔊 听发音</button>
+    </div>
+    <div class="max-w-lg mx-auto p-5 rounded-3xl bg-slate-50 border border-slate-200 space-y-4">
+      <div>
+        <span class="text-[11px] font-mono bg-violet-100 text-violet-800 px-2 py-0.5 rounded font-bold">${cur.pos}</span>
+        <h4 class="text-base font-black text-slate-900 mt-1">${cur.meaning}</h4>
+        <p class="text-xs text-slate-500">提示：共 ${cur.syllables.length} 个音节，首字母 <b>${cur.word[0].toUpperCase()}</b></p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        ${syls.map(s => `<button onclick="builtSyls.push('${s.replace(/'/g, "\\'")}');renderMain()" class="px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-xs font-black btn-bounce shadow-2xs">+ ${s}</button>`).join("")}
+        <button onclick="builtSyls=[];renderMain()" class="px-3 py-2 bg-rose-50 text-rose-700 rounded-xl text-xs font-bold">清空</button>
+      </div>
+      <div class="flex gap-2">
+        <input id="spellIn" type="text" value="${builtSyls.join("")}" placeholder="输入完整单词..." class="flex-1 border border-slate-300 rounded-xl px-3.5 py-2.5 text-base font-black" />
+        <button onclick="checkSpell('${cur.word.replace(/'/g, "\\'")}',${words.length})" class="bg-emerald-600 text-white text-xs font-black px-5 py-2.5 rounded-xl btn-bounce">核对</button>
+      </div>
+      <div id="spellMsg" class="text-xs font-black"></div>
+      <div class="flex justify-between pt-2 border-t border-slate-200 text-xs font-bold">
+        <button onclick="spellIdx=Math.max(0,spellIdx-1);builtSyls=[];renderMain()">← 上一词</button>
+        <button onclick="spellIdx=(spellIdx+1)%${words.length};builtSyls=[];renderMain()" class="text-violet-600">下一词 →</button>
+      </div>
+    </div>`;
+}
+
+function checkSpell(ans, total) {
+  const val = ($("spellIn")?.value || "").trim().toLowerCase();
+  if (val === ans.toLowerCase()) {
+    $("spellMsg").className = "text-xs font-black text-emerald-600";
+    $("spellMsg").innerText = "🎉 拼写暴击 +15 XP！";
+    speak(ans, false); reward(15, true);
+    setTimeout(() => { spellIdx = (spellIdx + 1) % total; builtSyls = []; renderMain(); }, 750);
+  } else {
+    state.streak = 0; save();
+    $("spellMsg").className = "text-xs font-black text-rose-600 shake";
+    $("spellMsg").innerText = `❌ 正确拼写：${ans}`;
+  }
+}
+
+function renderGrammarFormula(box, g) {
+  box.innerHTML = `
+    <div class="space-y-4">
+      <h3 class="font-black text-lg text-slate-900">${g.title}</h3>
+      <div class="p-4 rounded-2xl bg-slate-950 text-white">
+        <div class="text-[11px] text-amber-300 font-bold">📐 核心造句公式</div>
+        <div class="font-mono text-sm font-black mt-1">${g.formula}</div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="p-4 rounded-2xl bg-violet-50 border border-violet-200 text-xs leading-relaxed"><b>📘 语法拆解：</b>${g.guide}</div>
+        <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs leading-relaxed font-bold text-rose-950"><b>⚠️ 中英思维对比：</b>${g.contrast}</div>
+      </div>
+      <div class="space-y-2.5">
+        <div class="text-xs font-black text-slate-600">🎨 句子成分色彩拆解 (点击发声)：</div>
+        ${g.examples.map(ex => {
+          const full = `${ex.s} ${ex.v} ${ex.o} ${ex.m}`.trim();
+          return `<div onclick="speak('${full.replace(/'/g, "\\'")}',false)" class="pop-card cursor-pointer p-3.5 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-between gap-2">
+            <div class="space-y-1">
+              <div class="flex flex-wrap gap-1.5 text-xs font-black">
+                <span class="px-2.5 py-1 rounded-lg role-S">${ex.s}</span>
+                <span class="px-2.5 py-1 rounded-lg role-V">${ex.v}</span>
+                <span class="px-2.5 py-1 rounded-lg role-O">${ex.o}</span>
+                ${ex.m ? `<span class="px-2.5 py-1 rounded-lg role-M">${ex.m}</span>` : ''}
+              </div>
+              <div class="text-xs text-slate-500">${ex.zh}</div>
+            </div>
+            <span class="text-sm bg-violet-600 text-white px-3 py-1.5 rounded-xl font-black shrink-0">🔊</span>
+          </div>`;
+        }).join("")}
+      </div>
+      <button onclick="state.step=2;renderStepAndMain()" class="w-full sm:w-auto bg-emerald-600 text-white text-xs font-black px-5 py-3 rounded-xl btn-bounce">进入第2步：词块造句训练 →</button>
+    </div>`;
+}
+
+function renderGrammarScrambler(box, g) {
+  const list = g.scramblers;
+  if (scramIdx >= list.length) scramIdx = 0;
+  const item = list[scramIdx];
+  const chunks = [...item.chunks].sort((a, b) => a.localeCompare(b));
+
+  box.innerHTML = `
+    <div class="max-w-xl mx-auto space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="font-black text-base">🧩 点击词块重组造句 (${scramIdx + 1}/${list.length})</h3>
+        <button onclick="speak('${item.ans.replace(/'/g, "\\'")}',false)" class="bg-violet-600 text-white text-xs font-black px-3 py-1.5 rounded-xl">🔊 听整句</button>
+      </div>
+      <div class="p-5 rounded-3xl bg-slate-50 border border-slate-200 space-y-4">
+        <div class="text-sm font-black text-slate-900">🎯 目标：${item.prompt}</div>
+        <div class="flex flex-wrap gap-2">
+          ${chunks.map(c => `<button onclick="builtChunks.push('${c.replace(/'/g, "\\'")}');renderMain()" class="px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-xs font-black btn-bounce shadow-2xs">+ ${c}</button>`).join("")}
+          <button onclick="builtChunks=[];renderMain()" class="px-3 py-2 rounded-xl bg-rose-50 text-rose-700 text-xs font-bold">重排</button>
+        </div>
+        <div class="min-h-[52px] p-3.5 rounded-2xl bg-white border-2 border-dashed border-emerald-400 text-sm font-black text-slate-900 flex items-center">
+          ${builtChunks.join(" ") || "点击上方词块拼出地道英语句子..."}
+        </div>
+        <button onclick="checkScrambler('${item.ans.replace(/'/g, "\\'")}',${list.length})" class="w-full bg-emerald-600 text-white font-black text-xs py-3 rounded-xl btn-bounce shadow">⚡ 核对语序</button>
+        <div id="scramMsg" class="text-xs font-black"></div>
+      </div>
+    </div>`;
+}
+
+function checkScrambler(ans, total) {
+  if (builtChunks.join(" ").trim().toLowerCase() === ans.toLowerCase()) {
+    $("scramMsg").className = "text-xs font-black text-emerald-600";
+    $("scramMsg").innerText = "✅ 语序满分 +20 XP！";
+    speak(ans, false); reward(20, true);
+    setTimeout(() => { scramIdx = (scramIdx + 1) % total; builtChunks = []; renderMain(); }, 950);
+  } else {
+    state.streak = 0; save();
+    $("scramMsg").className = "text-xs font-black text-rose-600 shake";
+    $("scramMsg").innerText = `❌ 标准语序：${ans}`;
+  }
+}
+
+function renderGrammarPitfall(box, g) {
+  box.innerHTML = `
+    <div class="space-y-4">
+      <h3 class="font-black text-base">🩺 第3步：中式英语病句诊断诊所</h3>
+      ${g.pitfalls.map((p, i) => {
+        const key = `${g.id}_${i}`, ok = pitSolved[key];
+        return `<div class="p-4 rounded-2xl border border-slate-200 bg-slate-50 space-y-2.5">
+          <div class="text-xs font-black text-rose-700 bg-rose-50 px-3 py-2 rounded-xl">❌ 病句：<span class="line-through">${p.wrong}</span></div>
+          <div class="space-y-1.5">
+            ${p.options.map((opt, oi) => `<button onclick="solvePit('${key}',${oi},${p.ans},this)" class="w-full text-left p-3 rounded-xl border text-xs font-bold btn-bounce ${ok && oi === p.ans ? 'bg-emerald-100 border-emerald-500 text-emerald-950 font-black' : 'bg-white border-slate-200'}">${opt}</button>`).join("")}
+          </div>
+          ${ok ? `<div class="p-3 rounded-xl bg-emerald-50 text-xs text-emerald-900">💡 <b>解析：</b>${p.explain}</div>` : ''}
+        </div>`;
+      }).join("")}
+      <button onclick="state.step=4;renderStepAndMain()" class="bg-emerald-600 text-white text-xs font-black px-5 py-3 rounded-xl btn-bounce">进入第4步：单元过关测验 →</button>
+    </div>`;
+}
+
+function solvePit(key, chosen, ans, btn) {
+  if (chosen === ans) { pitSolved[key] = true; reward(15, false); renderMain(); }
+  else { btn.classList.add("shake", "bg-rose-100"); setTimeout(() => btn.classList.remove("shake", "bg-rose-100"), 350); }
+}
+
+function renderQuiz(box, title, questions, onPass, isBoss = false) {
+  box.innerHTML = `
+    <div class="pb-3 mb-4 border-b border-slate-100">
+      <h3 class="font-black text-base">${title}</h3>
+      <p class="text-xs text-slate-500">${isBoss ? '答对严格大于 80% (至少 9/10) 即可解锁下一 Key Stage！' : '答对 ≥80% 即可通关并解锁下一单元！'}</p>
+    </div>
+    <form onsubmit="submitQuiz(event, ${isBoss})" class="space-y-3">
+      ${questions.map((q, i) => `
+        <div class="p-3.5 rounded-2xl border border-slate-200 bg-slate-50/70">
+          <div class="text-xs font-black mb-2">Q${i + 1}. ${q.q}</div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            ${q.opts.map(opt => `<label class="flex items-center gap-2 p-2.5 rounded-xl border bg-white text-xs font-bold cursor-pointer hover:border-violet-400">
+              <input type="radio" name="q_${i}" value="${opt.replace(/"/g, '&quot;')}" data-ans="${q.ans.replace(/"/g, '&quot;')}" required />
+              <span>${opt}</span>
+            </label>`).join("")}
+          </div>
+        </div>`).join("")}
+      <div id="quizMsg"></div>
+      <button type="submit" class="w-full sm:w-auto bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-black text-xs px-6 py-3 rounded-xl btn-bounce shadow">⚡ 提交成绩</button>
+    </form>`;
+  window._currentQuizCallback = onPass;
+}
+
+function submitQuiz(e, isBoss) {
+  e.preventDefault();
+  const checked = e.target.querySelectorAll("input[type=radio]:checked");
+  let right = 0;
+  checked.forEach(r => { if (r.value === r.dataset.ans) right++; });
+  const pct = Math.round((right / checked.length) * 100);
+  const passed = isBoss ? pct > 80 : pct >= 80;
+  if (window._currentQuizCallback) window._currentQuizCallback(pct);
+  if (passed) reward(50, true);
+  save();
+  $("quizMsg").innerHTML = `<div class="p-4 rounded-2xl ${passed ? 'bg-emerald-50 border border-emerald-400 text-emerald-950' : 'bg-rose-50 border border-rose-300 text-rose-900'} text-xs font-black">
+    ${passed ? `🏆 得分 ${pct}% (${right}/${checked.length}) — 恭喜通关 (+50 XP)！可前往「🏆 成就卡」查看新徽章！` : `⚠️ 得分 ${pct}% (${right}/${checked.length}) — 还未达标，再刷一次吧！`}
+  </div>`;
+  renderAll();
+}
+
+/* ============================================================================
+   9. GLOBAL NAVIGATION CONTROLS
+   ============================================================================ */
+function setStage(code) {
+  if (!state.unlocked[code]) return alert("请先在当前阶段 Boss 战取得 >80% 成绩，或点击左下角「🔓 一键全解锁」！");
+  state.stage = code; state.themeIdx = 0; state.grammarIdx = 0; state.step = 1; state.page = 0;
+  blindIdx = 0; blindBuilt = [];
+  toggleDrawer(false); renderAll();
+}
+
+function switchTrack(t) {
+  state.track = t; state.step = 1; state.page = 0;
+  blindIdx = 0; blindBuilt = []; blindHintShown = false; blindClearedNow = false;
+  toggleDrawer(false); renderAll();
+}
+
+function selectUnit(track, idx, ok) {
+  if (!ok) return alert("请先通过上一单元的测验 (≥80%) 解锁！");
+  if (track === "vocab" || (track === "listen" && state.step === 1)) state.themeIdx = idx;
+  else state.grammarIdx = idx;
+  if (track !== "listen") state.step = 1;
+  state.page = 0; blindIdx = 0; blindBuilt = [];
+  toggleDrawer(false); renderAll();
+}
+
+function unlockAll() {
+  state.unlocked = { KS1: true, KS2: true, KS3: true, KS4: true };
+  state.passedThemes.ALL = true;
+  reward(25, true); toggleDrawer(false); renderAll();
+}
+
+function resetProgress() {
+  if (!confirm("确定重置所有进度、打卡记录和成就卡吗？")) return;
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+hydrate();
+renderAll();
+</script>
+</body>
+</html>
